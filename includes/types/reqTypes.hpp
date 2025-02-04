@@ -124,7 +124,7 @@ struct HttpRequestData
 	std::string							_boundary;
 	std::map<std::string, std::string>	_Fields;
 
-	///
+	// Confif File Data
 	t_data								_config_res;
 	t_map								_location_res;
 
