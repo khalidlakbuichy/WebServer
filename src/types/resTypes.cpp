@@ -5,6 +5,8 @@ std::string RESPONSE::toString(RESPONSE::ResponseCode responseCode)
 {
     switch (responseCode)
     {
+        case RESPONSE::Continue:
+            return "Continue";
         case RESPONSE::OK:
             return "OK";
         case RESPONSE::Created:

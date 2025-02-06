@@ -10,7 +10,6 @@ RequestParser::RequestParser()
 	// Res
 	// ========================================
 	// this->_res._config_res;
-	this->_res._result = PARSE::RES_INCOMPLETE;
 	this->_res._state = PARSE::STATE_REQUEST_METHOD_START;
 	this->_res._method = Method::UNKNOWN;
 	this->_res._uri.scheme = "";
@@ -22,14 +21,15 @@ RequestParser::RequestParser()
 	this->_res._version = Version::UNKNOWN;
 	this->_res._headers = std::map<std::string, std::string>();
 	this->_res._body_type = PARSE::NO_BODY;
-	this->_res._body = "";
 	this->_res._body_length = 0;
 	this->_res._chunked_size = 0;
 	this->_res._content_type = "";
 	this->_res._boundary = "";
 	this->_res._Fields = std::map<std::string, std::string>();
-	this->_res._is_multipart = false;
+	this->_res._is_multipart = 0;
+	this->_res._connection_should_close = 0;
 	this->_res._tmp_file_name = "";
+	this->_res._client_requesting_continue = 0;
 	this->_res._Error_msg = "";
 	// ========================================
 }
@@ -45,7 +45,6 @@ int RequestParser::Parse(std::string request)
 	const char *begin = request.c_str();
 	const char *end = begin + request.length();
 	const char *current = begin;
-
 
 	while (current != end)
 	{
@@ -269,7 +268,12 @@ int RequestParser::Parse(std::string request)
 			else if (isSpace(*current))
 				this->_res._state = PARSE::STATE_HEADER_SPACE_BEFORE_VALUE;
 			else if (isTchar(*current))
+			{
+				// Limit header key size
+				if (this->_curr_header_key.size() > 4096)
+					return (this->_res._Error_msg = "Header Key too long", -1);
 				this->_curr_header_key.push_back(*current);
+			}
 			else
 				return (this->_res._Error_msg = "Invalid Character in Header", -1);
 			break;
@@ -314,7 +318,12 @@ int RequestParser::Parse(std::string request)
 			if (*current == '\r')
 				this->_res._state = PARSE::STATE_HEADER_LINE_CR;
 			else if (isPrintable(*current))
+			{
+				// Limit header value size
+				if (this->_curr_header_value.size() > 4096)
+					return (this->_res._Error_msg = "Header Value too long", -1);
 				this->_curr_header_value.push_back(*current);
+			}
 			else
 				return (this->_res._Error_msg = "Invalid Character in Header", -1);
 			break;
@@ -342,12 +351,16 @@ int RequestParser::Parse(std::string request)
 			this->_curr_header_key.clear();
 			this->_curr_header_value.clear();
 			this->_curr_header_key.push_back(*current);
+
+			if (this->_res._headers.size() > 100)
+				return (this->_res._Error_msg = "Too many headers", -1);
 			break;
 		}
 		case PARSE::STATE_END_OF_HEADERS_CR:
 		{
 			_res._config_res = Config(_res._headers["host"].data());
 			_res._location_res = _res._config_res(_res._uri.host.data());
+
 			// t_data ConfigData;
 			// Syntax Check
 			if (*current == '\n')
@@ -362,8 +375,29 @@ int RequestParser::Parse(std::string request)
 				return (this->_res._Error_msg = "Invalid Headers : Host is missing", -1);
 			else
 			{
-			std::cout << _res._config_res["body_size"] << std::endl;
+				std::string	Host = this->_res._headers["host"];
+
+				std::string Hostname = Host.substr(0, Host.find(':'));
+				std::string Port = Host.substr(Host.find(':') + 1) == "" ? "80" : Host.substr(Host.find(':') + 1);
+
+				// Host Parsing //TODO:
+
+				// Port Parsing
+				int PortInt = atoi(Port.data());
+				if (PortInt < 0 || PortInt > 65535)
+					return (this->_res._Error_msg = "Invalid Port", -1);
 			}
+
+			if (this->_res._headers.find("connection") != this->_res._headers.end())
+			{
+				if (this->_res._headers["connection"] == "close")
+					this->_res._connection_should_close = 1;
+				else if (this->_res._headers["connection"] == "keep-alive")
+					this->_res._connection_should_close = 0;
+			}
+			if (this->_version_tmp == "1.0")
+				this->_res._connection_should_close = 1;
+
 			// [Content-Length] or [Transfer-Encoding]
 			if (this->_res._headers.find("content-length") != this->_res._headers.end())
 			{
@@ -399,6 +433,17 @@ int RequestParser::Parse(std::string request)
 				}
 			}
 
+			// Support for 100-continue
+			if (this->_res._headers.find("expect") != this->_res._headers.end())
+			{
+				if (this->_res._headers["expect"] == "100-continue")
+				{
+					this->_res._client_requesting_continue = 1;
+					return (1);
+				}
+				else
+					return (this->_res._Error_msg = "Invalid Expect Header", -3); // unsupported value
+			}
 			// Spef Checks
 			if (this->_method_tmp == "GET")
 			{
@@ -416,7 +461,7 @@ int RequestParser::Parse(std::string request)
 				_tmp_file.open(this->_res._tmp_file_name.c_str(), std::ios::binary | std::ios::trunc);
 
 				if (!_tmp_file.is_open())
-					return (this->_res._Error_msg = "Failed to open tmp file", -1);
+					return (this->_res._Error_msg = "Failed to open tmp file", -2);
 			}
 			else if (this->_method_tmp == "DELETE")
 			{
@@ -425,7 +470,6 @@ int RequestParser::Parse(std::string request)
 
 				return (1);
 			}
-
 			break;
 		}
 		case PARSE::STATE_END_OF_HEADERS_LF:

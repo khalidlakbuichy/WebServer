@@ -14,6 +14,7 @@ namespace RESPONSE
 	// Common http status codes
 	enum ResponseCode
 	{
+		Continue = 100,
 		OK = 200,
 		Created = 201,
 		NoContent = 204,
@@ -23,7 +24,7 @@ namespace RESPONSE
 		NotFound = 404,
 		InternalServerError = 500,
 		NotImplemented = 501,
-		ServiceUnavailable = 503
+		ServiceUnavailable = 503,
 	};
 
 	enum ChunkedState

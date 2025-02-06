@@ -1,12 +1,12 @@
 #include "../../includes/http/response.hpp"
 
-void Response::Http301(int client_socket)
+void Response::Http301(int client_socket, std::string redirection_link)
 {
 	Response res;
 	res.WithHttpVersion("HTTP/1.1")
 		.WithStatus(301)
 		.setDefaultHeaders()
-		.WithHeader("Location", "/?redirected=true")
+		.WithHeader("Location", redirection_link)
 		.WithHeader("connection", "keep-alive")
 		.Generate()
 		.Send(client_socket);
@@ -40,21 +40,26 @@ static bool isDirectory(const std::string &path)
 
 int Response::Serve(int client_socket, HttpRequestData &req)
 {
-	std::string Root = "www";
-	std::string resolvedPath = req._uri.host[req._uri.host.size() - 1] == '/' ? Root + req._uri.host + "index.html"
+	std::string Root = req._location_res["root"]; //TODO :specify /location later.
+	std::string resolvedPath = req._uri.host[req._uri.host.size() - 1] == '/' ? Root + req._uri.host + req._location_res["index"]
 																			  : Root + req._uri.host;
+	
+	// if (req._location_res["methods"].find("GET") == std::string::npos) 
+	// {
+	// 	MethodNotAllowed(client_socket, req);
+	// 	return (1);
+	// }
 
 	// /IMAGE.PHP
 	//resCGI =  hanglecgi(HttpRequestData, resCGI);
 	// res.CGI.getStatus() = 200 / 404 - 500
 
-
 	const size_t chunk_threshold = 2 * 1024 * 1024; // 2mb
 	const size_t buffer_size = 4096;				// 4kb
 
-	if (req._uri.host == "/redirect_me_plz")
+	if (req._location_res.find("redirect"))
 	{
-		Http301(client_socket);
+		Http301(client_socket, req._location_res["redirect"]);
 		return 1;
 	}
 
@@ -65,7 +70,7 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 		if (access((resolvedPath + "/index.html").c_str(), F_OK) == 0)
 			resolvedPath += "/index.html";
 		else
-			return ServeDirectory(client_socket, resolvedPath);
+			return ServeDirectory(client_socket, resolvedPath, req);
 	}
 
 	if (!_file.is_open())
@@ -117,7 +122,7 @@ int Response::ServeFile(int client_socket, std::string resolvedPath, HttpRequest
 	return 1;
 }
 
-int Response::ServeDirectory(int client_socket, std::string DirPath)
+int Response::ServeDirectory(int client_socket, std::string DirPath, HttpRequestData &req)
 {
 	DIR *dir;
 	struct dirent *ent;
@@ -127,7 +132,7 @@ int Response::ServeDirectory(int client_socket, std::string DirPath)
 
 	if (dir == NULL)
 	{
-		InternalServerError(client_socket);
+		InternalServerError(client_socket, req);
 		return 1;
 	}
 

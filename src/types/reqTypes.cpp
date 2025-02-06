@@ -86,19 +86,3 @@ std::string PARSE::toString(PARSE::state state)
 	}
 }
 
-std::string PARSE::toString(PARSE::result result)
-{
-	switch (result)
-	{
-	case PARSE::RES_OK:
-		return "RES_OK";
-	case PARSE::RES_INCOMPLETE:
-		return "RES_INCOMPLETE";
-	case PARSE::RES_NEED_MORE:
-		return "RES_NEED_MORE";
-	case PARSE::RES_ERROR:
-		return "RES_ERROR";
-	default:
-		return "UNKNOWN";
-	}
-}

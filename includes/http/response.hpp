@@ -41,13 +41,13 @@ public:
 	static void Http201(int client_socket); // OK, for POST request, returns the created resource
 	static void Http204(int client_socket); // OK, with no content response, mostly for DELETE request
 	// Redirection
-	static void Http301(int client_socket);
+	static void Http301(int client_socket, std::string redirection_link);
 
-	static void BadRequest(int client_socket);
+	static void BadRequest(int client_socket, HttpRequestData &req);
 	static void NotFound(int client_socket, HttpRequestData &req);
-	static void MethodNotAllowed(std::string PageUrl);
-	static void InternalServerError(int client_socket);
-	static void NotImplemented(std::string PageUrl);
+	static void MethodNotAllowed(int client_socket, HttpRequestData &req);
+	static void InternalServerError(int client_socket, HttpRequestData &req);
+	static void NotImplemented(int client_socket, HttpRequestData &req);
 
 	// Methods
 	Response &WithHttpVersion(std::string version);
@@ -63,7 +63,7 @@ public:
 	// Get
 	bool OpenFile(const std::string &resolvedPath, HttpRequestData &req, int client_socket);
 	int Serve(int client_socket, HttpRequestData &req);
-	int ServeDirectory(int client_socket, std::string DirPath);
+	int ServeDirectory(int client_socket, std::string DirPath, HttpRequestData &req);
 	int ServeFile(int client_socket, std::string resolvedPath, HttpRequestData &req);
 	// Post
 	int ParseMultiPartFormData(HttpRequestData &req, int client_socket);

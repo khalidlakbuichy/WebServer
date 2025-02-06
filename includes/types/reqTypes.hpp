@@ -18,14 +18,6 @@ struct Uri
 
 namespace PARSE
 {
-	enum result
-	{
-		RES_OK,
-		RES_INCOMPLETE,
-		RES_NEED_MORE,
-		RES_ERROR,
-	};
-
 	enum body_type
 	{
 		CHUNKED,
@@ -91,36 +83,20 @@ namespace PARSE
 	};
 
 	std::string toString(PARSE::state state);
-	std::string toString(PARSE::result result);
 };
 
 struct HttpRequestData
 {
-	// State
-	PARSE::result						_result;
 	PARSE::state						_state;
-
 	std::string							_Error_msg;
-
-	// Request Method
 	Method::Type						_method;
-	// Uri
 	Uri									_uri;
-	// Http Version
 	Version::Type						_version;
-	// Headers
 	std::map<std::string, std::string>	_headers;
-
-	// Body
 	PARSE::body_type					_body_type;
-	std::string							_body;
 	unsigned long						_body_length;
-	// Chunked
 	unsigned long						_chunked_size;
-	// Content type
 	std::string							_content_type;
-
-	// Fields (MultiPart reqs)
 	std::string							_boundary;
 	std::map<std::string, std::string>	_Fields;
 
@@ -130,6 +106,8 @@ struct HttpRequestData
 
 	// Flags
 	int									_is_multipart;
+	int 								_connection_should_close;
+	int									_client_requesting_continue;
 	std::string							_tmp_file_name;
 };
 

@@ -21,6 +21,8 @@ int main(int ac, char **av)
 		//  access  error pages or info server   use  ==> _config_res["body_size"]  _config_res["403"]
 		//  access locations   use  ==> _location_res["root"]  _location_res.find("GET")   
 
+		// std::cout << Config("localhost:4000")("/images")["root"]  << std::endl;
+
 		server.CreatMultiplexing();
 	}
 	catch (const std::exception &e)
@@ -57,5 +59,12 @@ int main(int ac, char **av)
 
 	TODO
 	8 - read - write - idle Timeout
+
+	TODO
+	9 - CHECK SUPPORTED CONTENT-TYPES IN THE REQS
+
+	TODO
+	10 - EVRY RETURNS -1 OR IGNORED CHECK FOR UNSUPPORTED THING, SHOULD BE HANDLED VIA -3 RETURN.
+	11 - 413 Payload Too Large
 
  */

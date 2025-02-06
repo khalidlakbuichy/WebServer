@@ -91,7 +91,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             {
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
                     continue;
-                
+
                 std::cout << "Receive error: " << strerror(errno) << std::endl;
                 close(fd);
                 serv.erase(fd);
@@ -102,7 +102,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             {
                 std::cout << "Connection closed by client" << std::endl;
                 close(fd);
-                serv.erase(fd);
+                // serv.erase(fd); this segfault
                 continue;
             }
 
@@ -111,29 +111,59 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
 
             int reqParser_res = serv[fd]->req.Parse(std::string(buffer, len));
 
+            /*
+                Parse()
+                    - Return 1 if the request is parsed successfully.
+                    - Return 0 if the request is not fully parsed yet.
+                    - Return -1 if the request is invalid.
+                    - Return -2 if there is an internal server error.
+                    - Return -3 if The server doesn't support a feature.
+
+                getResult()
+                    - new members :
+                        - _client_requesting_continue
+                        - _Error_msg
+                        - _connection_should_close
+            */
             if (reqParser_res == 1)
             {
-                std::cout << "Request parsing completed." << std::endl;
                 serv[fd]->resData = serv[fd]->req.getResult();
-                ADD_Events(fd, EPOLLOUT, EPOLL_CTL_MOD);
+                if (serv[fd]->resData._client_requesting_continue) // Expect: 100-continue
+                {
+                    Response res;
+                    res.WithHttpVersion("HTTP/1.1")
+                        .WithStatus(100)
+                        .Generate()
+                        .Send(fd);
+                    serv[fd]->resData._client_requesting_continue = 0;
+                    continue;
+                }
+                else
+                    ADD_Events(fd, EPOLLOUT, EPOLL_CTL_MOD); // Respond to the request
             }
-            else if (reqParser_res == 0)
+            else if (reqParser_res == 0) // Continue
             {
-                std::cout << "Request parsing not completed. Needs More." << std::endl;
+                // ======>> wa9ila khass tkoun continue HNA
             }
-            else
+            else if (reqParser_res == -1) // Bad Request
             {
-                // std::cout << "Bad Request: " << serv[fd]->req.getResult()._Error_msg << std::endl;
-                Response::BadRequest(fd);
+                Response::BadRequest(fd, serv[fd]->resData);
                 close(fd);
-                // serv.erase(fd);
+            }
+            else if (reqParser_res == -2) // Internal Server Error
+            {
+                Response::InternalServerError(fd, serv[fd]->resData);
+                close(fd);
+            }
+            else if (reqParser_res == -3) // Unsupported Feature
+            {
+                Response::NotImplemented(fd, serv[fd]->resData);
+                close(fd);
             }
             // end
         }
         else if (events[i].events & EPOLLOUT)
         {
-            cout << "\n\n+++++++++++++++++++++++++ block respond +++++++++++++++++++++++++\n\n"
-                 << std::endl;
             Method::Type method = serv[fd]->resData._method;
             switch (method)
             {

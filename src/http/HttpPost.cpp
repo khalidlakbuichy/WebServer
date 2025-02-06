@@ -229,9 +229,9 @@ int Response::Post(int client_socket, HttpRequestData &req)
 	int res = ParseMultiPartFormData(req, client_socket);
 
 	if (res == 0)
-		BadRequest(client_socket);
+		BadRequest(client_socket, req);
 	else if (res < 0)
-		InternalServerError(client_socket); // For now.
+		InternalServerError(client_socket, req); // For now.
 
 	return (1);
 }

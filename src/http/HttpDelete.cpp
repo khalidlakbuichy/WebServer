@@ -25,7 +25,7 @@ int Response::Delete(int client_socket, HttpRequestData &req)
 	int status = remove(File.c_str());
 	if (status != 0)
 	{
-		InternalServerError(client_socket);
+		InternalServerError(client_socket, req);
 		return 1;
 	}
 	else
