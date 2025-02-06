@@ -1,7 +1,7 @@
 #include "../includes/webserv.hpp"
 #include "../includes/http/request.hpp"
 
-ParsingConfigFile Config;
+Parse_Config Config;
 
 int main(int ac, char **av)
 {

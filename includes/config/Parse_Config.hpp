@@ -1,16 +1,12 @@
-#ifndef PARSINGCONFIGFILE_HPP
-#define PARSINGCONFIGFILE_HPP
+#ifndef PARSE_CONFIG_HPP
+#define PARSE_CONFIG_HPP
 
-#include "t_data.hpp"
-
-
-
+#include "Config_Loader.hpp"
 
 using namespace std;
 
+const string  TT[] = {"uri" , "upload"  , "redirect" , "cgi" , "root" , "methods" , "index"};
 
-
-const string  KEYOFLOCATION[] = {"uri" , "upload"  , "redirect" , "cgi" , "root" , "methods" , "index"};
 
 const string  NAMESOFBLOCKS[] = {"[server]" , "[server.errors]" , "[server.location]"};
 
@@ -21,60 +17,51 @@ const string  VALUES[] = {"GET" , "POST" , "DELETE"};
 
 
 
-
-
-
-
-
-class ParsingConfigFile
+class Parse_Config
 {
 
 private:
     vector<int (*)(int)> func_ptr;
-    vector<t_data >  blocks;
+    vector<ConfigLoader >  blocks;
     vector<addrinfo *> save_addr;
-    t_data data;
+    vector<int> socks;
+    ConfigLoader data;
     t_map loc;
     string key;
     string value;
     string filename;
-    vector<int> socks;
     int limit;
     int flag;
 
 public:
-    ParsingConfigFile();
-    t_data operator()(const char *);
-    ~ParsingConfigFile();
+    Parse_Config();
+    ~Parse_Config();
+
+public:
+    ConfigLoader operator()(const char *);
 
 public:
     vector<addrinfo *>getHosts();
 
 public:
+    void CheckArrayOfValue(vector<string> &data ,int flag);
     void getKeyValue(string &line , char set);
-    int CheckCharacter(char c);
-    void CheckString(string &str);
     void ParseFile(const char *_file);
+    void CheckString(string &str);
+    int CheckCharacter(char c);
+    void ft_getaddrinfo();
+
+public:
     void CheckBlockLocation();
     void CheckBlockErrors();
     void CheckInfoServer();
-    void push_back_data();
-    void push_back_location();
-    void CheckArrayOfValue(vector<string> &data ,int flag);
-    void ft_getaddrinfo();
-    void test();
 
+public:
+    void push_back_location();
+    void push_back_data();
+    void test();
 };
 
-
-// struct configres;
-// {
-//     t_map loc;
-
-//     /* data */
-// };
-
-
-extern ParsingConfigFile Config;
+extern Parse_Config Config;
 
 #endif

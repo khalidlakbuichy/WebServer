@@ -44,11 +44,11 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 	std::string resolvedPath = req._uri.host[req._uri.host.size() - 1] == '/' ? Root + req._uri.host + req._location_res["index"]
 																			  : Root + req._uri.host;
 	
-	// if (req._location_res["methods"].find("GET") == std::string::npos) 
-	// {
-	// 	MethodNotAllowed(client_socket, req);
-	// 	return (1);
-	// }
+	if (!req._location_res.find("GET")) 
+	{
+		MethodNotAllowed(client_socket, req);
+		return (1);
+	}
 
 	// /IMAGE.PHP
 	//resCGI =  hanglecgi(HttpRequestData, resCGI);

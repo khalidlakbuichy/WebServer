@@ -1,5 +1,5 @@
 #include "../../includes/http/request_parser.hpp"
-#include "../../includes/server/ParsingConfigFile.hpp"
+#include "../../includes/config/Parse_Config.hpp"
 RequestParser::RequestParser()
 {
 	// Tmp holders
@@ -361,7 +361,17 @@ int RequestParser::Parse(std::string request)
 			_res._config_res = Config(_res._headers["host"].data());
 			_res._location_res = _res._config_res(_res._uri.host.data());
 
-			// t_data ConfigData;
+			
+			{
+
+				// print  data 
+
+			std::cout << _res._headers["host"].data() << std::endl;
+			std::cout << _res._uri.host.data() << std::endl;
+			std::cout << _res._location_res["uri"] << std::endl;
+	
+			}
+			// ConfigLoader ConfigData;
 			// Syntax Check
 			if (*current == '\n')
 				this->_res._state = PARSE::STATE_END_OF_HEADERS_LF;

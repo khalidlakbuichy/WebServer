@@ -2,7 +2,7 @@
 #define REQ_TYPES_HPP
 
 #include "httpTypes.hpp"
-#include "../../includes/server/ParsingConfigFile.hpp"
+#include "../../includes/config/Parse_Config.hpp"
 
 #include <string>
 
@@ -101,7 +101,7 @@ struct HttpRequestData
 	std::map<std::string, std::string>	_Fields;
 
 	// Confif File Data
-	t_data								_config_res;
+	ConfigLoader								_config_res;
 	t_map								_location_res;
 
 	// Flags

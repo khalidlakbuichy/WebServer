@@ -16,10 +16,6 @@ void Server::CreatServer(vector<addrinfo *> hosts)
         int fd = socket(hosts[i]->ai_family, hosts[i]->ai_socktype, hosts[i]->ai_protocol);
 
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)); //
-
-        // int flags = fcntl(fd, F_GETFL, 0);
-        // fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-
         bind(fd, hosts[i]->ai_addr, hosts[i]->ai_addrlen);
 
         if (errno < 0)
@@ -87,6 +83,9 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
                       << std::endl;
             ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 
+            buffer[len] = 0;
+            std::cout << buffer << std::endl;
+
             if (len < 0)
             {
                 if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -102,7 +101,6 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             {
                 std::cout << "Connection closed by client" << std::endl;
                 close(fd);
-                // serv.erase(fd); this segfault
                 continue;
             }
 
