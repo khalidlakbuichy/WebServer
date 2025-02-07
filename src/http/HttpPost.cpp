@@ -207,7 +207,6 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 		}
 		case PARSE::STATE_EMPTY_LINE_BEFORE_BOUNDARY_END:
 		{
-			std::cout << line << std::endl;
 			if (line == "\r\n")
 			{
 				state = PARSE::STATE_BOUNDARY_END;

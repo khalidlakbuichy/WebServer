@@ -90,7 +90,7 @@ struct HttpRequestData
 	PARSE::state						_state;
 	std::string							_Error_msg;
 	Method::Type						_method;
-	Uri									_uri;
+	Uri									_uri; // cgi_script_name = _uri.host || 
 	Version::Type						_version;
 	std::map<std::string, std::string>	_headers;
 	PARSE::body_type					_body_type;
@@ -109,6 +109,12 @@ struct HttpRequestData
 	int 								_connection_should_close;
 	int									_client_requesting_continue;
 	std::string							_tmp_file_name;
+
+
+	// CGI
+	int 								_status;
+    std::map<std::string, std::string> 	_headers;
+    std::string							_bodyFile; //tmp path that needs to be served.
 };
 
 // ConfigFileResutl res;

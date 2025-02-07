@@ -81,7 +81,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 
             buffer[len] = 0;
-            // std::cout << buffer << std::endl;
+            std::cout << buffer << std::endl;
 
             if (len < 0)
             {
@@ -89,11 +89,9 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
                 //     continue;
 
                 // std::cout << "Receive error: " << strerror(errno) << std::endl;
-                
                 close(fd);
                 continue;
             }
-
             if (len == 0)
             {
                 std::cout << "Connection closed by client" << std::endl;
@@ -103,7 +101,6 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
 
             if (static_cast<size_t>(len) < sizeof(buffer))
                 buffer[len] = '\0';
-
             int reqParser_res = serv[fd]->req.Parse(std::string(buffer, len));
             /*
                 Parse()
@@ -121,7 +118,6 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             */
             if (reqParser_res == 1)
             {
-                std::cout << "done!" << std::endl;
                 serv[fd]->resData = serv[fd]->req.getResult();
                 if (serv[fd]->resData._client_requesting_continue) // Expect: 100-continue
                 {
@@ -142,7 +138,6 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             }
             else if (reqParser_res == -1)   // Bad Request
             {
-                std::cout << "Error is : " << serv[fd]->req.getResult()._Error_msg << std::endl;
                 Response::BadRequest(fd, serv[fd]->resData);
                 close(fd);
             }
@@ -164,7 +159,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
         }
         else if (events[i].events & EPOLLOUT)
         {
-            std::cout << "\n\n++++++++++++++++++++++++ block request ++++++++++++++++++++++++\n\n" << std::endl;
+            std::cout << "\n\n++++++++++++++++++++++++ block Response ++++++++++++++++++++++++\n\n" << std::endl;
             Method::Type method = serv[fd]->resData._method;
             switch (method)
             {

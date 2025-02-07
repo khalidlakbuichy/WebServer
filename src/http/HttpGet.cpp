@@ -40,8 +40,14 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 	std::string Root = req._location_res["root"];
 	std::string resolvedPath = Root + req._uri.host; // No index file concat yet.
 
-	std::cout << "||" << resolvedPath << "||" << std::endl;
-	std::cout << "--" << req._location_res["methods"].data() << "--" << std::endl;
+	std::cout << "||" << req._uri.host << "||" << std::endl;
+	std::cout << "--" << req._location_res.find("GET") << "--" << std::endl;
+	
+	// if (true)
+	// {
+	// 	ResponseCgi resp = handleCGI();
+	// }
+
 
 	// If GET method supported.
 	if (!req._location_res.find("GET"))

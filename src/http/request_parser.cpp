@@ -360,17 +360,8 @@ int RequestParser::Parse(std::string request)
 		{
 			_res._config_res = Config(_res._headers["host"].data());
 			_res._location_res = _res._config_res(_res._uri.host.data());
-
 			
-			{
 
-				// print  data 
-
-			std::cout << _res._headers["host"].data() << std::endl;
-			std::cout << _res._uri.host.data() << std::endl;
-			std::cout << _res._location_res["uri"] << std::endl;
-	
-			}
 			// ConfigLoader ConfigData;
 			// Syntax Check
 			if (*current == '\n')
@@ -386,11 +377,8 @@ int RequestParser::Parse(std::string request)
 			else
 			{
 				std::string	Host = this->_res._headers["host"];
-
 				std::string Hostname = Host.substr(0, Host.find(':'));
 				std::string Port = Host.substr(Host.find(':') + 1) == "" ? "80" : Host.substr(Host.find(':') + 1);
-
-				// Host Parsing //TODO:
 
 				// Port Parsing
 				int PortInt = atoi(Port.data());
