@@ -14,7 +14,7 @@ int map<T1 , T2>::count(T1 str)
 template<class T1 , class T2>
 bool map<T1 , T2>::find(std::string  str)
 {
-    std::vector<std::string> met = data["methods"]; 
+    std::vector<std::string> met = data[string("methods")]; 
     if(std::count(met.begin(), met.end(), str))
         return 1;
     return(!data[str].empty());
@@ -24,10 +24,10 @@ bool map<T1 , T2>::find(std::string  str)
 template<class T1 , class T2>
 bool map<T1 , T2>::find(const char * str)
 {
-    std::vector<std::string> met = data["methods"]; 
+    
+    std::vector<std::string> met = data[string("methods")]; 
     if(std::count(met.begin(), met.end(), str))
         return 1;
-
     return(!data[str].empty());
 }
 
@@ -50,6 +50,17 @@ void map<T1 , T2>::clear()
 template<class T1 , class T2>
 int map<T1 , T2>::empty()
 {
+    return (data.empty());
+}
+
+
+template<class T1 , class T2>
+bool map<T1 , T2>::check(const char *str)
+{
+    std::vector<std::string> met = data[string("methods")]; 
+    if(std::count(met.begin(), met.end(), str))
+        return 1;
+    
     return (data.empty());
 }
 

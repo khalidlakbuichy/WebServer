@@ -19,18 +19,37 @@ std::string ConfigLoader::operator[](const char *str)
     return(error[str]);
 }
 
-t_map ConfigLoader::operator()(const char *path)
-{
-    vector<t_map>::iterator it = location.begin();
 
-    while(it != location.end())
+t_map findd(string path , vector<t_map> &loc)
+{
+
+    vector<t_map>::iterator it = loc.begin();
+
+    while(it != loc.end())
     {
         
-        if(it->find("uri" , path))
+        if(it->find("uri" , path.data()))
             return *it;
         it++;
     }
-    return(*location.begin());
+    
+    std::cout << "+++++++++++" << path << std::endl;
+    std::cout << "-----------" << path.erase(path.find_last_of('/') , path.size() - path.find_last_of('/')) << std::endl;
+    
+    if(path.empty())
+    {
+        std::cout << "(())" << std::endl;
+        path = "/";
+
+    }
+
+    return(findd(path , loc));
+}
+
+t_map ConfigLoader::operator()(const char *path)
+{
+    t_map loc = findd(string(path) , location);
+    return(loc);
 }
 
 
@@ -73,7 +92,7 @@ int ConfigLoader::empty()
 
 void  throwConfigError(bool expr , const char *str)
 {
-    if(expr) throw std::runtime_error(str);
+    if(expr) throw std::runtime_error(string("webserve : " + string(str)));
 }
 
 

@@ -39,10 +39,11 @@ public:
 
 public:
     int count(T1 str);
+    int empty();
+    bool check(const char *str);
     bool find(std::string  str);
     bool find(const char * str);
     bool find(const char *s1 , const char *s2);
-    int empty();
 
 public:
     void clear();
@@ -80,6 +81,7 @@ public:
     std::string operator[](const char *str);
 
 public:
+    
     int empty();    
 };
 

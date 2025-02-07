@@ -44,7 +44,7 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 	std::string resolvedPath = req._uri.host[req._uri.host.size() - 1] == '/' ? Root + req._uri.host + req._location_res["index"]
 																			  : Root + req._uri.host;
 	
-	if (!req._location_res.find("GET")) 
+	if (!req._location_res.find("GET"))
 	{
 		MethodNotAllowed(client_socket, req);
 		return (1);

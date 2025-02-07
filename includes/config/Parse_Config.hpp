@@ -5,8 +5,7 @@
 
 using namespace std;
 
-const string  TT[] = {"uri" , "upload"  , "redirect" , "cgi" , "root" , "methods" , "index"};
-
+const string  KEYOFLOCATION[] = {"uri" , "upload"  , "redirect" , "cgi" , "root" , "methods" , "index" , "autoindex"};
 
 const string  NAMESOFBLOCKS[] = {"[server]" , "[server.errors]" , "[server.location]"};
 

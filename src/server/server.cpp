@@ -79,12 +79,11 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
 
 
             // begin 
-            std::cout << "\n\n-------------------------- block request --------------------------\n\n"
-                      << std::endl;
+            std::cout << "\n\n-------------------------- block request --------------------------\n\n" << std::endl;
             ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 
-            buffer[len] = 0;
-            std::cout << buffer << std::endl;
+            // buffer[len] = 0;
+            // std::cout << buffer << std::endl;
 
             if (len < 0)
             {
@@ -162,6 +161,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
         }
         else if (events[i].events & EPOLLOUT)
         {
+            std::cout << "\n\n++++++++++++++++++++++++ block request ++++++++++++++++++++++++\n\n" << std::endl;
             Method::Type method = serv[fd]->resData._method;
             switch (method)
             {
