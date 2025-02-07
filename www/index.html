@@ -95,33 +95,26 @@
           body: formData
         })
           .then(response => {
+            if (response.status === 201)
+              return response.json();
             if (response.status === 500) {
               throw new Error('Internal server error');
             }
+            else if (response.status == 413)
+              throw new Error("413 Payload too large.");
             else if (response.status === 400)
               throw new Error('Bad request, or file(s) already exists');
-            return response.json();
-          })
+            else
+              throw new Error("i didnt handle that response code yet on the client side.")
+            })
           .then(data => {
-            const result = Object.entries(data.data)
-              .map(([key, value]) => `${key}: ${value ?? '(missing)'}`) // Replace undefined with "(missing)"
-              .join('\n');
-
-              showToast(`Success! Form data received:\n${result}`);
+            console.log(data);
+            showToast(`Success!`);
           })
           .catch(error => {
             // console.error('Error submitting form:', error);
             showToast(error.message, true);
           });
-      });
-
-      // === Get all fields from session storage
-      const fields = Object.keys(sessionStorage);
-      const ul = document.getElementById('SessionStorage_fields');
-      fields.forEach(field => {
-        const li = document.createElement('li');
-        li.textContent = `${field}: ${sessionStorage.getItem(field)}`;
-        ul.appendChild(li);
       });
 
       // Redirect Detection
@@ -133,7 +126,7 @@
           }, 500);
         }
       });
-      // Function to show toast messages
+      // Handle Delete
       function HandleDeleteFile() {
         const file = document.getElementById('delete').value;
         if (!file) {
@@ -163,6 +156,7 @@
             showToast(`Error deleting file: ${error.message}`, true);
           });
       }
+
       // Toast functionality
       function showToast(message, isError = false) {
         const toast = document.getElementById('toast');
@@ -183,6 +177,7 @@
       }
       // Handle File upload
 
+
       // Handle the file upload
       document.getElementById('file-upload-form').addEventListener('submit', function (event) {
         event.preventDefault();
@@ -202,13 +197,25 @@
           method: 'POST',
           body: formData
         })
-          .then(response => response.json())
+          .then(response => {
+            if (response.status === 201)
+              return response.json();
+            else if (response.status == 405)
+              throw new Error('405 Method not allowed.');
+            else if (response.status === 413)
+              throw new Error('413 Payload Too Large');
+            else if (response.status === 500)
+              throw new Error('500 Internal server error.');
+            else if (response.status === 400)
+              throw new Error('Bad request, or a file already exists!')
+            else
+              throw new Error('I didnt handle that response code in the client side.')
+          })
           .then(data => {
             showToast(`File uploaded successfully: ${data.data.file}`);
           })
           .catch(error => {
-            console.error('Error uploading file:', error);
-            showToast("Error uploading file.", true);
+            showToast("Error uploading the file: " + error.message, true);
           });
       });
     </script>

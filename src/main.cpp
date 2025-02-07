@@ -16,7 +16,11 @@ int main(int ac, char **av)
 		Config.ParseFile(av[1]);
 
 		server.CreatServer(Config.getHosts());
-		
+
+		//  access  error pages or info server   use  ==> _config_res["body_size"]  _config_res["403"]
+		//  access locations   use  ==> _location_res["root"]  _location_res.find("GET")   
+
+		// std::cout << Config("localhost:4000")("/images")["root"]  << std::endl;
 		server.CreatMultiplexing();
 	}
 	catch (const std::exception &e)

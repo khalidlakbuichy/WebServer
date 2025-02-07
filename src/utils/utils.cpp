@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <cstdlib>
 #include "sstream"
+#include <ctime>
 
 
 void setNonBlocking(int sock) {
@@ -36,4 +37,20 @@ std::string NumberToString(int number)
     ss << number;
     ss >> result;
     return result;
+}
+
+bool isDirectory(const std::string &path)
+{
+	struct stat statbuf;
+	if (stat(path.c_str(), &statbuf) != 0)
+		return false; // Path does not exist or cannot be accessed
+	return S_ISDIR(statbuf.st_mode);
+}
+
+
+std::string get_http_date() {
+    std::time_t now = std::time(NULL);
+    char buf[100];
+    std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
+    return std::string(buf);
 }

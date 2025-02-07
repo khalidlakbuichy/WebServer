@@ -1,5 +1,19 @@
 #include "../../includes/http/response.hpp"
 
+void Response::Http413(int client_socket)
+{
+	Response res;
+
+	res.WithHttpVersion("HTTP/1.1")
+		.WithStatus(413)
+		.setDefaultHeaders()
+		.WithHeader("Content-Type", "text/plain")
+		.WithHeader("Connection", "close")
+		.WithBody("413 Payload Too Large")
+		.Generate()
+		.Send(client_socket);
+}
+
 void Response::Http201(int client_socket)
 {
 	// Create the response body
@@ -33,20 +47,30 @@ static std::string FieldsMapStringify(std::map<std::string, std::string> &Fields
 	return data;
 }
 
-
-// TODO: this doesnt handle file close/remove properly on error.
 int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 {
-	// TODO : Handle File close.
 	// Field/Value pairs
 	std::string field_name;
 	std::string field_value;
 	std::ofstream curr_file;
-
 	std::map<std::string, std::string> Fields;
 
-	std::string UPLOAD_DIR = "./www/uploads/";
-	// std::string							TMP_DIR = "./www/tmp/";
+	std::string Upload_dir = req._location_res["upload"];
+	std::string Root = req._location_res["root"];
+	Root += (Root[Root.length() - 1] == '/' ? "" : "/");
+	Upload_dir += (Upload_dir[Upload_dir.length() - 1] == '/' ? "" : "/");
+
+	std::string fullDir = Root + Upload_dir;
+
+	// if Method Supported in this location
+	if (!req._location_res.find("POST"))
+	{
+		MethodNotAllowed(client_socket, req);
+		return (1);
+	}
+	// if upload dirr is exist
+	if (!isDirectory(fullDir))
+		return (req._Error_msg = "Unacessible upload folder", -1);
 
 	// Open tmp file
 	std::ifstream MultiPartData((req._tmp_file_name).c_str(), std::ios::binary);
@@ -111,12 +135,12 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 				return (req._Error_msg = "Invalid File Name", 0);
 
 			// If file exists
-			std::ifstream curr_file_check((UPLOAD_DIR + field_value).c_str(), std::ios::in);
+			std::ifstream curr_file_check((fullDir + field_value).c_str(), std::ios::in);
 			if (curr_file_check.is_open())
 				return (req._Error_msg = "File already exists", 0);
 
 			// Open file
-			curr_file.open((UPLOAD_DIR + field_value).c_str(), std::ios::binary);
+			curr_file.open((fullDir + field_value).c_str(), std::ios::binary);
 			if (!curr_file.is_open())
 				return (req._Error_msg = "Could not open file", -1);
 			state = PARSE::STATE_CONTENT_TYPE;
@@ -207,12 +231,7 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 		}
 	}
 
-	// Close file
-	MultiPartData.close();
-	remove(req._tmp_file_name.c_str());
-
 	std::string data = FieldsMapStringify(Fields);
-
 	Response res;
 	res.WithHttpVersion("HTTP/1.1")
 		.WithStatus(201)
@@ -231,7 +250,8 @@ int Response::Post(int client_socket, HttpRequestData &req)
 	if (res == 0)
 		BadRequest(client_socket, req);
 	else if (res < 0)
-		InternalServerError(client_socket, req); // For now.
+		InternalServerError(client_socket, req);
 
+	remove(req._tmp_file_name.c_str());
 	return (1);
 }

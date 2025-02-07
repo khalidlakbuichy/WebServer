@@ -416,8 +416,8 @@ int RequestParser::Parse(std::string request)
 				this->_res._body_length = stringToUnsignedLong(this->_res._headers["content-length"]);
 				
 				// TODO: change to number later.
-				if (this->_res._body_length <= 0 || this->_res._body_length > (unsigned long)atoi(_res._config_res["body_size"].data())) // 10MB
-					return (this->_res._Error_msg = "Invalid Content-Length", -1);
+				if (this->_res._body_length <= 0 || this->_res._body_length > (unsigned long)atoi(_res._config_res["body_size"].data()))
+					return (this->_res._Error_msg = "Invalid Content-Length", -4);
 			}
 			else if (this->_res._headers.find("transfer-encoding") != this->_res._headers.end())
 			{

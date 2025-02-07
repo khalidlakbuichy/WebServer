@@ -21,6 +21,8 @@ std::string RESPONSE::toString(RESPONSE::ResponseCode responseCode)
             return "Forbidden";
         case RESPONSE::NotFound:
             return "Not Found";
+        case RESPONSE::PayloadTooLarge:
+            return "Payload Too Large";
         case RESPONSE::InternalServerError:
             return "Internal Server Error";
         case RESPONSE::NotImplemented:

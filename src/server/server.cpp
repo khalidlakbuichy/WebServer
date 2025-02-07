@@ -76,23 +76,21 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
         }
         else if (events[i].events & EPOLLIN)
         {
-
-
             // begin 
             std::cout << "\n\n-------------------------- block request --------------------------\n\n" << std::endl;
             ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 
             buffer[len] = 0;
-            std::cout << buffer << std::endl;
+            // std::cout << buffer << std::endl;
 
             if (len < 0)
             {
-                if (errno == EAGAIN || errno == EWOULDBLOCK)
-                    continue;
+                // if (errno == EAGAIN || errno == EWOULDBLOCK)
+                //     continue;
 
-                std::cout << "Receive error: " << strerror(errno) << std::endl;
+                // std::cout << "Receive error: " << strerror(errno) << std::endl;
+                
                 close(fd);
-                serv.erase(fd);
                 continue;
             }
 
@@ -123,6 +121,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             */
             if (reqParser_res == 1)
             {
+                std::cout << "done!" << std::endl;
                 serv[fd]->resData = serv[fd]->req.getResult();
                 if (serv[fd]->resData._client_requesting_continue) // Expect: 100-continue
                 {
@@ -137,26 +136,31 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
                 else
                     ADD_Events(fd, EPOLLOUT, EPOLL_CTL_MOD); // Respond to the request
             }
-            else if (reqParser_res == 0) // Continue
+            else if (reqParser_res == 0)    // Continue
             {
                 // ======>> wa9ila khass tkoun continue HNA
             }
-            else if (reqParser_res == -1) // Bad Request
+            else if (reqParser_res == -1)   // Bad Request
             {
+                std::cout << "Error is : " << serv[fd]->req.getResult()._Error_msg << std::endl;
                 Response::BadRequest(fd, serv[fd]->resData);
                 close(fd);
             }
-            else if (reqParser_res == -2) // Internal Server Error
+            else if (reqParser_res == -2)   // Internal Server Error
             {
                 Response::InternalServerError(fd, serv[fd]->resData);
                 close(fd);
             }
-            else if (reqParser_res == -3) // Unsupported Feature
+            else if (reqParser_res == -3)   // Unsupported Feature
             {
                 Response::NotImplemented(fd, serv[fd]->resData);
                 close(fd);
             }
-            // end
+            else if (reqParser_res == -4)   // Payload too large
+            {
+                Response::Http413(fd);
+                close(fd);
+            }
         }
         else if (events[i].events & EPOLLOUT)
         {

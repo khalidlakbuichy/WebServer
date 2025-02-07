@@ -23,8 +23,8 @@ Response &Response::WithStatus(int status)
 
 Response &Response::setDefaultHeaders()
 {
-	_Headers["Server"] = "Webserv";
-	// _Headers["Connection"] = "close";
+	_Headers["Server"] = "OneServe";
+	_Headers["Date"] = get_http_date();
 	return *this;
 }
 
@@ -78,7 +78,7 @@ void Response::NotFound(int client_socket, HttpRequestData &req)
 {
 	std::ifstream DefFile;
 	std::ifstream file(req._config_res["404"].c_str());
-
+	
 	std::string body;
 	
 	if (!file.is_open())

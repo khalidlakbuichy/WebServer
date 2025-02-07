@@ -11,9 +11,6 @@
 #include <iomanip>
 #include <ctime>
 
-#include <sys/stat.h>
-#include <dirent.h>
-
 // for access
 #include <unistd.h>
 
@@ -42,6 +39,8 @@ public:
 	static void Http204(int client_socket); // OK, with no content response, mostly for DELETE request
 	// Redirection
 	static void Http301(int client_socket, std::string redirection_link);
+	// Payload Too Large
+	static void Http413(int client_socker);
 
 	static void BadRequest(int client_socket, HttpRequestData &req);
 	static void NotFound(int client_socket, HttpRequestData &req);
@@ -61,10 +60,10 @@ public:
 	void Clear();
 
 	// Get
-	bool OpenFile(const std::string &resolvedPath, HttpRequestData &req, int client_socket);
-	int Serve(int client_socket, HttpRequestData &req);
-	int ServeDirectory(int client_socket, std::string DirPath, HttpRequestData &req);
-	int ServeFile(int client_socket, std::string resolvedPath, HttpRequestData &req);
+	bool 		OpenFile(const std::string &resolvedPath, HttpRequestData &req, int client_socket);
+	int 		Serve(int client_socket, HttpRequestData &req);
+	int 		ServeDirectory(int client_socket, std::string DirPath, HttpRequestData &req);
+	int 		ServeFile(int client_socket, std::string resolvedPath, HttpRequestData &req);
 	// Post
 	int ParseMultiPartFormData(HttpRequestData &req, int client_socket);
 	int Post(int client_socket, HttpRequestData &req);

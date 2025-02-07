@@ -11,7 +11,6 @@ void Response::Http301(int client_socket, std::string redirection_link)
 		.Generate()
 		.Send(client_socket);
 }
-
 bool Response::OpenFile(const std::string &resolvedPath, HttpRequestData &req, int client_socket)
 {
 	(void)client_socket;
@@ -30,47 +29,48 @@ bool Response::OpenFile(const std::string &resolvedPath, HttpRequestData &req, i
 	return true;
 }
 
-static bool isDirectory(const std::string &path)
-{
-	struct stat statbuf;
-	if (stat(path.c_str(), &statbuf) != 0)
-		return false; // Path does not exist or cannot be accessed
-	return S_ISDIR(statbuf.st_mode);
-}
-
+// /IMAGE.PHP
+// resCGI =  hanglecgi(HttpRequestData, resCGI);
+// res.CGI.getStatus() = 200 / 404 - 500
 int Response::Serve(int client_socket, HttpRequestData &req)
 {
-	std::string Root = req._location_res["root"]; //TODO :specify /location later.
-	std::string resolvedPath = req._uri.host[req._uri.host.size() - 1] == '/' ? Root + req._uri.host + req._location_res["index"]
-																			  : Root + req._uri.host;
-	
-	if (!req._location_res.check("GET"))
+	const size_t chunk_threshold = 2 * 1024 * 1024; // 2mb
+	const size_t buffer_size = 4096;				// 4kb
+
+	std::string Root = req._location_res["root"];
+	std::string resolvedPath = Root + req._uri.host; // No index file concat yet.
+
+	std::cout << "||" << resolvedPath << "||" << std::endl;
+	std::cout << "--" << req._location_res["methods"].data() << "--" << std::endl;
+
+	// If GET method supported.
+	if (!req._location_res.find("GET"))
 	{
 		MethodNotAllowed(client_socket, req);
 		return (1);
 	}
-
-	// /IMAGE.PHP
-	//resCGI =  hanglecgi(HttpRequestData, resCGI);
-	// res.CGI.getStatus() = 200 / 404 - 500
-
-	const size_t chunk_threshold = 2 * 1024 * 1024; // 2mb
-	const size_t buffer_size = 4096;				// 4kb
-
+	// If should be redirected.
 	if (req._location_res.find("redirect"))
 	{
 		Http301(client_socket, req._location_res["redirect"]);
 		return 1;
 	}
 
-	// check if file is a directory using opendir
+	// check if a req is for a dir
 	if (isDirectory(resolvedPath))
 	{
-		// check if the directory has an index.html file
-		if (access((resolvedPath + "/index.html").c_str(), F_OK) == 0)
-			resolvedPath += "/index.html";
+		// as NGINX do, if a req of dir doesnt end with /, it performs a redirect call.
+		if (resolvedPath[resolvedPath.length() - 1] != '/')
+			return (Http301(client_socket, req._uri.host + '/'), 1);
+
+		// check if the dir has the main index.
+		if (access((resolvedPath + req._location_res["index"]).c_str(), F_OK) == 0)
+			resolvedPath += req._location_res["index"]; // ResolvedPath is completed somehow.
 		else
+		{
+			// TODO :Check if autoindex ON, later. ELSE, 403 FORBIDEN.
 			return ServeDirectory(client_socket, resolvedPath, req);
+		}
 	}
 
 	if (!_file.is_open())
@@ -87,12 +87,10 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 			return 0;
 		}
 	}
-
 	// Read and send the next chunk
 	char buffer[buffer_size];
 	_file.read(buffer, buffer_size);
 	std::string bufferStr(buffer, _file.gcount());
-
 	if (_file.eof() && bufferStr.empty())
 	{
 		// End of file, send the final chunk
@@ -129,7 +127,6 @@ int Response::ServeDirectory(int client_socket, std::string DirPath, HttpRequest
 	std::ostringstream html;
 
 	dir = opendir(DirPath.c_str());
-
 	if (dir == NULL)
 	{
 		InternalServerError(client_socket, req);
@@ -143,15 +140,15 @@ int Response::ServeDirectory(int client_socket, std::string DirPath, HttpRequest
 		std::string name = ent->d_name;
 		if (name == "." || name == "..")
 			continue; // Skip current and parent directory links
-		if (isDirectory(DirPath + "/" + name))
-			name += "/"; // Append a slash to indicate a directory
 
+		if (isDirectory(DirPath + name))
+			name += "/"; // Append a slash to indicate a directory
 		// Generate relative path safely
 		std::string relativePath = DirPath;
 		if (relativePath.compare(0, 4, "www/") == 0) // Ensure "www/" prefix exists
 			relativePath = relativePath.substr(4);
 
-		html << "<a href=\"" << relativePath + "/" + name << "\">" << name << "</a><br>";
+		html << "<a href=\"" << name << "\">" << name << "</a><br>";
 	}
 
 	html << "</pre><hr></body></html>";
