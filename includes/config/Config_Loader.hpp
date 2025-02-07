@@ -51,7 +51,7 @@ public:
 
 public:
     std::vector<std::string> & operator[](std::string str);
-    std::string operator[](const char *str);
+    std::string &operator[](const char *str);
 };
 
 

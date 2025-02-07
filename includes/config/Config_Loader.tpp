@@ -14,9 +14,6 @@ int map<T1 , T2>::count(T1 str)
 template<class T1 , class T2>
 bool map<T1 , T2>::find(std::string  str)
 {
-    std::vector<std::string> met = data[string("methods")]; 
-    if(std::count(met.begin(), met.end(), str))
-        return 1;
     return(!data[str].empty());
 }
 
@@ -24,10 +21,6 @@ bool map<T1 , T2>::find(std::string  str)
 template<class T1 , class T2>
 bool map<T1 , T2>::find(const char * str)
 {
-    
-    std::vector<std::string> met = data[string("methods")]; 
-    if(std::count(met.begin(), met.end(), str))
-        return 1;
     return(!data[str].empty());
 }
 
@@ -57,11 +50,13 @@ int map<T1 , T2>::empty()
 template<class T1 , class T2>
 bool map<T1 , T2>::check(const char *str)
 {
-    std::vector<std::string> met = data[string("methods")]; 
-    if(std::count(met.begin(), met.end(), str))
-        return 1;
-    
-    return (data.empty());
+    if(!data["methods"].empty())
+    {
+        std::vector<std::string> met = data[string("methods")];
+        if(std::count(met.begin(), met.end(), str))
+            return 1;
+    }
+    return (0);
 }
 
 
@@ -69,7 +64,7 @@ template<class T1 , class T2>
 void map<T1 , T2>::insert(const char *s1 , const char *s2)
 {
     if(!find(s1))
-        data[std::string(s1)].push_back(s2);
+        data[s1].push_back(s2);
 }
 
 
@@ -80,7 +75,7 @@ std::vector<std::string> & map<T1 , T2>::operator[](std::string str)
 }
 
 template<class T1 , class T2>
-std::string  map<T1 , T2>::operator[](const char *str)
+std::string  & map<T1 , T2>::operator[](const char *str)
 {
     return(data[str][0]);
 }

@@ -106,15 +106,16 @@ void Parse_Config::CheckBlockLocation()
     throwConfigError(!count(KEYOFLOCATION , &KEYOFLOCATION[size] , key) ,  "location this key is not exist");
     flag = (key[0] == 'c') * 2 + (key[0] == 'm') * 0 + !(key[0] == 'm') * 1;
     throwConfigError(key[0] != 'c' && loc.find(key) , "dupblicate key location");
-    throwConfigError(key[0] == 'a' && (!loc["methods"].compare("on") || !loc["methods"].compare("off")), "dupblicate1 key location");
     CheckArrayOfValue(loc[key] , flag);
+    throwConfigError(key[0] == 'a' && (loc["autoindex"] != "on" && loc["autoindex"] != "off" ), "dupblicate1 key location");
 }
 
 
 void Parse_Config::CheckInfoServer()
 {
-    int size = sizeof(KEYOFSERVER) / sizeof(KEYOFSERVER[0]);
+    int size;
 
+    size  = sizeof(KEYOFSERVER) / sizeof(KEYOFSERVER[0]);
     throwConfigError(!count(KEYOFSERVER , &KEYOFSERVER[size] , key) ,  "server this key is not exist");
 
     flag = (key[0] == 'p' || key[0] == 's') * 2 + !(key[0] == 'p' || key[0] == 's');
@@ -143,21 +144,30 @@ void Parse_Config::getKeyValue(string &line , char set)
 }
 
 
+#include <iostream>
+#include <cstdlib>
+#include <cerrno>
+#include <limits>
+
 void Parse_Config::ft_getaddrinfo()
 {
     vector<string> it;
     const char *host;
     addrinfo *res;
     int CodeErr; 
-
-    it = data.server[string("port")];
+   
     host = data.server["host"].data();
-
+    it = data.server[string("port")];
+    
     for(unsigned long i = 0; i < it.size() ; i++)
     {
+        std::cout << host << ":" << it[i].data() << std::endl;
         res = NULL;
-        CodeErr =  getaddrinfo(host, it[i].data(), NULL ,&res);
-        throwConfigError(CodeErr  , gai_strerror(CodeErr));
+        CodeErr = strtol(it[i].c_str() , NULL , 10);
+        throwConfigError(CodeErr < 0 || CodeErr > 65000 , "invalid range");
+        
+        CodeErr =  getaddrinfo(host, it[i].data(), NULL, &res);
+        throwConfigError(CodeErr , gai_strerror(CodeErr));
         save_addr.push_back(res);
     }
 }
@@ -170,14 +180,12 @@ void Parse_Config::push_back_data()
     if(data.error.empty() && data.server.empty() && data.location.empty())
         return;
 
-    { // add default data server
-
+    {
     data.error.insert("404" , "www/errors/400.html"); // TODO:
     data.server.insert("host" , "127.0.0.1");
     data.server.insert("port" , "8080");
     data.server.insert("body_size" , "4096K");
     data.server.insert("server_name" , "localhost");
-
     }
 
     ft_getaddrinfo();
@@ -192,11 +200,10 @@ void Parse_Config::push_back_location()
     if(loc.empty())
         return;
 
-    { // add default data  location
+    {
     loc.insert("root" , "www");
     loc.insert("index" , "index.html");
     loc.insert("upload" , "/upload/files/");
-    loc.insert("methods" , "V");
     loc.insert("autoindex" , "off");
     }
 

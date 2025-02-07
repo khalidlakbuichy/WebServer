@@ -82,8 +82,8 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             std::cout << "\n\n-------------------------- block request --------------------------\n\n" << std::endl;
             ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
 
-            // buffer[len] = 0;
-            // std::cout << buffer << std::endl;
+            buffer[len] = 0;
+            std::cout << buffer << std::endl;
 
             if (len < 0)
             {
@@ -107,7 +107,6 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
                 buffer[len] = '\0';
 
             int reqParser_res = serv[fd]->req.Parse(std::string(buffer, len));
-
             /*
                 Parse()
                     - Return 1 if the request is parsed successfully.
