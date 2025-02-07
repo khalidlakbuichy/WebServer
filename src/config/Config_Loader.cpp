@@ -33,15 +33,14 @@ t_map findd(string path , vector<t_map> &loc)
         it++;
     }
     
-    std::cout << "+++++++++++" << path << std::endl;
-    std::cout << "-----------" << path.erase(path.find_last_of('/') , path.size() - path.find_last_of('/')) << std::endl;
-    
-    if(path.empty())
-    {
-        std::cout << "(())" << std::endl;
-        path = "/";
 
-    }
+
+    
+    if(path[path.size() - 1] == '/')
+        path.erase(path.size() - 1 , 1);
+    else
+        path.erase(path.find_last_of('/')+1 , path.size() - (path.find_last_of('/') + 1));
+
 
     return(findd(path , loc));
 }
