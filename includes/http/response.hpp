@@ -1,12 +1,12 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
+#include "./cgi_handler.hpp"
 #include <string>
 #include <map>
 #include "../types/resTypes.hpp"
 #include "../utils/utils.hpp"
 #include <fstream>
-
 #include <sstream>
 #include <iomanip>
 #include <ctime>

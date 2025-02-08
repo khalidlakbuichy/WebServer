@@ -22,6 +22,7 @@
 #include "./http/request.hpp"
 #include "../includes/server/server.hpp"
 #include "../includes/config/Parse_Config.hpp"
+#include "../includes/http/cgi_handler.hpp"
 // Sockets Macros
 #define PORT 8080
 #define BUFFER_SIZE 8192

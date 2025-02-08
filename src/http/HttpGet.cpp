@@ -40,14 +40,9 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 	std::string Root = req._location_res["root"];
 	std::string resolvedPath = Root + req._uri.host; // No index file concat yet.
 
-	std::cout << "||" << req._uri.host << "||" << std::endl;
-	std::cout << "--" << req._location_res.find("GET") << "--" << std::endl;
-	
-	// if (true)
-	// {
-	// 	ResponseCgi resp = handleCGI();
-	// }
-
+	if (true)
+	{
+	}
 
 	// If GET method supported.
 	if (!req._location_res.check("GET"))
@@ -68,7 +63,6 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 		// as NGINX do, if a req of dir doesnt end with /, it performs a redirect call.
 		if (resolvedPath[resolvedPath.length() - 1] != '/')
 			return (Http301(client_socket, req._uri.host + '/'), 1);
-
 		// check if the dir has the main index.
 		if (access((resolvedPath + req._location_res["index"]).c_str(), F_OK) == 0)
 			resolvedPath += req._location_res["index"]; // ResolvedPath is completed somehow.
@@ -125,7 +119,6 @@ int Response::ServeFile(int client_socket, std::string resolvedPath, HttpRequest
 	_file.close();
 	return 1;
 }
-
 int Response::ServeDirectory(int client_socket, std::string DirPath, HttpRequestData &req)
 {
 	DIR *dir;

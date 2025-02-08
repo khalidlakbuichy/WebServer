@@ -102,20 +102,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             if (static_cast<size_t>(len) < sizeof(buffer))
                 buffer[len] = '\0';
             int reqParser_res = serv[fd]->req.Parse(std::string(buffer, len));
-            /*
-                Parse()
-                    - Return 1 if the request is parsed successfully.
-                    - Return 0 if the request is not fully parsed yet.
-                    - Return -1 if the request is invalid.
-                    - Return -2 if there is an internal server error.
-                    - Return -3 if The server doesn't support a feature.
 
-                getResult()
-                    - new members :
-                        - _client_requesting_continue
-                        - _Error_msg
-                        - _connection_should_close
-            */
             if (reqParser_res == 1)
             {
                 serv[fd]->resData = serv[fd]->req.getResult();

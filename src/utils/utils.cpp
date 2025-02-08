@@ -54,3 +54,4 @@ std::string get_http_date() {
     std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
     return std::string(buf);
 }
+

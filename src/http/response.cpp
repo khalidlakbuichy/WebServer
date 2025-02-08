@@ -7,40 +7,34 @@ Response::Response() : _version(""), _Status(""), _Headers(), _Body(""), _Resp("
 {
 	_ChunkedState = RESPONSE::CHUNKED_HEADERS;
 }
-
 Response &Response::WithHttpVersion(std::string version)
 {
 	(void)version;
 	this->_version = "HTTP/1.1";
 	return *this;
 }
-
 Response &Response::WithStatus(int status)
 {
 	this->_Status = std::string(NumberToString(status).c_str()) + " " + RESPONSE::toString(static_cast<RESPONSE::ResponseCode>(status));
 	return *this;
 }
-
 Response &Response::setDefaultHeaders()
 {
 	_Headers["Server"] = "OneServe";
 	_Headers["Date"] = get_http_date();
 	return *this;
 }
-
 Response &Response::WithHeader(std::string key, std::string value)
 {
 	_Headers[key] = value;
 	return *this;
 }
-
 Response &Response::WithBody(std::string body)
 {
 	_Body = body;
 	(*this).WithHeader("content-length", NumberToString(body.size()));
 	return *this;
 }
-
 void Response::Http200(int client_socket)
 {
 	Response res;
@@ -170,7 +164,6 @@ void Response::NotImplemented(int client_socket, HttpRequestData &req)
 		.Generate()
 		.Send(client_socket);
 }
-
 Response &Response::Generate(int isChunked)
 {
 	if (isChunked)
@@ -215,7 +208,6 @@ Response &Response::Generate(int isChunked)
 	}
 	return *this;
 }
-
 int Response::Send(int client_socket)
 {
 	// std::cout << "Response: " << _Resp << std::endl;
@@ -223,7 +215,6 @@ int Response::Send(int client_socket)
 	Clear();
 	return 0;
 }
-
 void Response::Clear()
 {
 	_Resp = "";
