@@ -52,7 +52,7 @@ bool map<T1 , T2>::check(const char *str)
 {
 
     if(!std::string(str).compare("autoindex"))
-        return(data["methods"][0] == "on");
+        return(data["autoindex"][0] == "on");
     
     if(!data["methods"].empty())
     {

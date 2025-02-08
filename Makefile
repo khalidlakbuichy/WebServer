@@ -13,7 +13,7 @@ NAME = webserv
 OBJ = $(SRC:.cpp=.o)
 CC = g++
 RM = rm -f
-CPPFLAGS = -Wall -Wextra -Werror  -std=c++98 
+CPPFLAGS = -Wall -Wextra -Werror -g -std=c++98 
 # ==================
 
 
