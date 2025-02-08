@@ -63,7 +63,7 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 	std::string fullDir = Root + Upload_dir;
 
 	// if Method Supported in this location
-	if (!req._location_res.find("POST"))
+	if (!req._location_res.check("POST"))
 	{
 		MethodNotAllowed(client_socket, req);
 		return (1);

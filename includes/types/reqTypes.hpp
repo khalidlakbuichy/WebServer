@@ -113,7 +113,7 @@ struct HttpRequestData
 
 	// CGI
 	int 								_status;
-    std::map<std::string, std::string> 	_headers;
+    std::map<std::string, std::string> 	_headers_cgi;
     std::string							_bodyFile; //tmp path that needs to be served.
 };
 

@@ -20,7 +20,7 @@ int Response::Delete(int client_socket, HttpRequestData &req)
 	std::string fullDir = Root + Upload_dir + req._uri.host;
 
 	// Check if DELETE allowed
-	if (!req._location_res.find("DELETE"))
+	if (!req._location_res.check("DELETE"))
 	{
 		MethodNotAllowed(client_socket, req);
 		return (1);

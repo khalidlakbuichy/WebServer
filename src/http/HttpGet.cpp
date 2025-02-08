@@ -50,7 +50,7 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 
 
 	// If GET method supported.
-	if (!req._location_res.find("GET"))
+	if (!req._location_res.check("GET"))
 	{
 		MethodNotAllowed(client_socket, req);
 		return (1);
