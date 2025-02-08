@@ -20,6 +20,8 @@ std::string ConfigLoader::operator[](const char *str)
 }
 
 
+
+
 t_map findd(string path , vector<t_map> &loc)
 {
 
@@ -89,10 +91,6 @@ int ConfigLoader::empty()
 
 ///  functions  helper
 
-void  throwConfigError(bool expr , const char *str)
-{
-    if(expr) throw std::runtime_error(string("webserve : " + string(str)));
-}
 
 
 int strtrim(std::string &str , const char *sharset)

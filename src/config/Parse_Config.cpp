@@ -9,13 +9,22 @@ map<int , void (Parse_Config::*)()> funcPush;
 
 void Parse_Config::test() {}
 
-Parse_Config::Parse_Config(){}
+Parse_Config::Parse_Config() :check_host(true) {}
 
 vector<addrinfo *>Parse_Config::getHosts()
 {
     return save_addr;
 }
 
+bool Parse_Config::check()
+{
+    return(check_host);
+}
+
+void  Parse_Config::throwConfigError(bool expr , const char *str)
+{
+    if(expr) throw std::runtime_error(string("webserve : " + string(str)));
+}
 
 void _fill()
 {
@@ -42,7 +51,8 @@ ConfigLoader Parse_Config::operator()(const char *_str)
             return(*it);
         it++;
     }
-    throwConfigError(true , "Error host is not exist");
+    check_host = false;
+    // throwConfigError(true ,  "Error host is not exist");
     return *it;
 }
 
@@ -69,7 +79,6 @@ void Parse_Config::CheckString(string &str)
 }
 
 
-
 void Parse_Config::CheckArrayOfValue( vector<string> &data , int flag)
 {
     stringstream  obj(value);
@@ -84,30 +93,35 @@ void Parse_Config::CheckArrayOfValue( vector<string> &data , int flag)
         throwConfigError(!flag && !count(&VALUES[0], &VALUES[size], word), "invalid value1" );
         data.push_back(word);
     }
-    throwConfigError(flag == 1 && i != 1 , "invalid value2" );
-    throwConfigError(flag == 3  && i != 2 , "invalid value3" );
+    _errno = (flag == 1 && i != 1) + (flag == 3  && i != 2); 
+    throwConfigError(_errno , "invalid value2" );
 }
-
 
 
 void Parse_Config::CheckBlockErrors()
 {
-    throwConfigError((key.length() != 3 || key[0] < '3' || key[0] > '5') , "must btw 300 to 599");
+    throwConfigError((key.size() != 3 || key[0] < '3' || key[0] > '5') , "must btw 300 to 599");
     func_ptr.push_back(isdigit); CheckString(key);
 
-    flag = 1;
     throwConfigError(data.error.find(key) , "dupblicate key error");
-    CheckArrayOfValue(data.error[key] , flag);
+    CheckArrayOfValue(data.error[key] , 1);
 }
 
 void Parse_Config::CheckBlockLocation()
 {
-    int size = sizeof(KEYOFLOCATION) / sizeof(KEYOFLOCATION[0]);
+    int size;
+
+    size = sizeof(KEYOFLOCATION) / sizeof(KEYOFLOCATION[0]);
     throwConfigError(!count(KEYOFLOCATION , &KEYOFLOCATION[size] , key) ,  "location this key is not exist");
-    flag = (key[0] == 'c') * 2 + (key[0] == 'm') * 0 + !(key[0] == 'm') * 1;
+
+    flag = (key[0] == 'c') * 2 + !(key[0] == 'm');
+
     throwConfigError(key[0] != 'c' && loc.find(key) , "dupblicate key location");
     CheckArrayOfValue(loc[key] , flag);
-    throwConfigError(key[0] == 'a' && (loc["autoindex"] != "on" && loc["autoindex"] != "off" ), "dupblicate1 key location");
+
+    _errno = !loc.find("uri");
+    _errno += key[0] == 'a' && (value != "on" && value != "off");
+    throwConfigError(_errno, "ERROR IN LOCATION");
 }
 
 
@@ -118,19 +132,20 @@ void Parse_Config::CheckInfoServer()
     size  = sizeof(KEYOFSERVER) / sizeof(KEYOFSERVER[0]);
     throwConfigError(!count(KEYOFSERVER , &KEYOFSERVER[size] , key) ,  "server this key is not exist");
 
-    flag = (key[0] == 'p' || key[0] == 's') * 2 + !(key[0] == 'p' || key[0] == 's');
+    checks = "ps";
+    flag = (checks.find(key[0]) != checks.npos ) ? 2 : 1 ;
+
     throwConfigError(data.server.find(key) , " dupblicate key server");
     CheckArrayOfValue(data.server[key] , flag);
-    
+
     if(key[0] == 'b')
     {
-        value = data.server[key][0];
-        checks = "KM"; func_ptr.push_back(isdigit);
-        CheckString(value);
-        size_t pos = value.find_first_of("KM");
-        throwConfigError(pos != value.length() - 1 && pos != value.npos  , "Error in body size");
+        value = data.server[key.data()];
+        size_t pos = value.find_first_not_of("0123456789");
+        throwConfigError(pos != value.size() - 1 || value[pos] != 'k'  , "Error in body size");
     }
 }
+
 
 void Parse_Config::getKeyValue(string &line , char set)
 {
@@ -141,13 +156,9 @@ void Parse_Config::getKeyValue(string &line , char set)
     key = line.substr(0 , c);
     value = line.substr(c + 1, line.npos);
     strtrim(key , " \t");
+    strtrim(value , " \t");
 }
 
-
-#include <iostream>
-#include <cstdlib>
-#include <cerrno>
-#include <limits>
 
 void Parse_Config::ft_getaddrinfo()
 {
@@ -161,17 +172,15 @@ void Parse_Config::ft_getaddrinfo()
     
     for(unsigned long i = 0; i < it.size() ; i++)
     {
-        std::cout << host << ":" << it[i].data() << std::endl;
         res = NULL;
         CodeErr = strtol(it[i].c_str() , NULL , 10);
-        throwConfigError(CodeErr < 0 || CodeErr > 65000 , "invalid range");
+        throwConfigError(CodeErr < 1024 || CodeErr > 65535 , "invalid range");
         
         CodeErr =  getaddrinfo(host, it[i].data(), NULL, &res);
         throwConfigError(CodeErr , gai_strerror(CodeErr));
         save_addr.push_back(res);
     }
 }
-
 
 
 void Parse_Config::push_back_data()
@@ -181,6 +190,18 @@ void Parse_Config::push_back_data()
         return;
 
     {
+    if(data.location.empty())
+    {
+        loc.insert("uri" , "/");
+        loc.insert("root" , "www");
+        loc.insert("index" , "index.html");
+        loc.insert("upload" , "/upload/files/");
+        loc.insert("autoindex" , "off");
+        loc.insert("methods" , "GET");
+
+        data.location.push_back(loc);
+
+    }
     data.error.insert("404" , "www/errors/400.html"); // TODO:
     data.server.insert("host" , "127.0.0.1");
     data.server.insert("port" , "8080");
@@ -194,17 +215,15 @@ void Parse_Config::push_back_data()
 }
 
 
-
 void Parse_Config::push_back_location()
 {
     if(loc.empty())
         return;
-
     {
-    loc.insert("root" , "www");
-    loc.insert("index" , "index.html");
-    loc.insert("upload" , "/upload/files/");
-    loc.insert("autoindex" , "off");
+        loc.insert("root" , "www");
+        loc.insert("index" , "index.html");
+        loc.insert("upload" , "/upload/files/");
+        loc.insert("autoindex" , "off");
     }
 
     data.location.push_back(loc);
@@ -215,9 +234,9 @@ void Parse_Config::push_back_location()
 
 void Parse_Config::ParseFile(const char *filename)
 {
-    string line;
-    int flag;
     std::ifstream file(filename , ios::out);
+    string line;
+    short flag;
     
     flag = 0;
     _fill();

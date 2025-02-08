@@ -66,7 +66,6 @@ typedef http::map<string , vector<string> > t_map;
 // this class for loading data server 
 class ConfigLoader
 {
-
 public:
     t_map server;
     t_map error;
@@ -81,12 +80,10 @@ public:
     std::string operator[](const char *str);
 
 public:
-    
     int empty();    
 };
 
 int strtrim(std::string &str , const char *sharset);
-void  throwConfigError(bool expr , const char *str);
 
 #include "Config_Loader.tpp"
 

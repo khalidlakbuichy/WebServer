@@ -20,7 +20,10 @@ int main(int ac, char **av)
 		//  access  error pages or info server   use  ==> _config_res["body_size"]  _config_res["403"]
 		//  access locations   use  ==> _location_res["root"]  _location_res.find("GET")   
 
-		// std::cout << Config("localhost:4000")("/images")["root"]  << std::endl;
+		std::cout << Config("localhost:4000")("/jsj").check("autoindex")  << std::endl;
+		
+		std::cout << "VALIIIIIIIIIIIIIIIIIID" << std::endl;
+		// return 1;
 		server.CreatMultiplexing();
 	}
 	catch (const std::exception &e)

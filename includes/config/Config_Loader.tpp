@@ -50,9 +50,13 @@ int map<T1 , T2>::empty()
 template<class T1 , class T2>
 bool map<T1 , T2>::check(const char *str)
 {
+
+    if(!std::string(str).compare("autoindex"))
+        return(data["methods"][0] == "on");
+    
     if(!data["methods"].empty())
     {
-        std::vector<std::string> met = data[string("methods")];
+        std::vector<std::string> met = data["methods"];
         if(std::count(met.begin(), met.end(), str))
             return 1;
     }

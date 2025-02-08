@@ -29,9 +29,10 @@ private:
     string key;
     string value;
     string filename;
+    bool check_host;
+    bool _errno;
     int limit;
     int flag;
-
 public:
     Parse_Config();
     ~Parse_Config();
@@ -49,6 +50,8 @@ public:
     void CheckString(string &str);
     int CheckCharacter(char c);
     void ft_getaddrinfo();
+    void  throwConfigError(bool expr , const char *str);
+    bool check();
 
 public:
     void CheckBlockLocation();
