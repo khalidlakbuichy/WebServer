@@ -23,6 +23,7 @@ private:
 	std::string _content_length;
 	std::string _content_type;
 	std::string _body;
+	std::string _cookies;
 	std::string _path_info;
 	std::string _interpreter;
 
@@ -36,6 +37,7 @@ public:
 			   const std::string &content_length,
 			   const std::string &content_type,
 			   const std::string &body,
+			   const std::string &cookies,
 			   const std::string &path_info,
 			   const std::string &interpreter);
 
@@ -48,6 +50,7 @@ public:
 	void setContentLength(const std::string &content_length);
 	void setContentType(const std::string &content_type);
 	void setBody(const std::string &body);
+	void setCookies(const std::string &cookies);
 	void setPathInfo(const std::string &path_info);
 	void setInterpreter(const std::string &interpreter);
 
@@ -58,6 +61,7 @@ public:
 	const std::string &getContentLength() const;
 	const std::string &getContentType() const;
 	const std::string &getBody() const;
+	const std::string &getCookies() const;
 	const std::string &getPathInfo() const;
 	const std::string &getInterpreter() const;
 };
