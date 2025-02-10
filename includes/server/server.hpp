@@ -26,7 +26,7 @@
 #include <netdb.h>
 #include <algorithm>
 #include <cerrno>
-// #include "../CONFIG_FILE/Parse_Config.hpp"
+#include "../../includes/config/Parse_Config.hpp"
 
 
 
@@ -81,6 +81,8 @@ public:
     void ADD_Events(int _fd , EPOLL_EVENTS ev , int op );
     void CreatMultiplexing();
     void ForEachEvents(epoll_event *events , int n_events );
+    void ChangeMonitor(int fd);
+
 };
 
 

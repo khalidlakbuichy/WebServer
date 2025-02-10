@@ -8,30 +8,26 @@ Server::Server()
     epfd = epoll_create(1);
 }
 
+
 void Server::CreatServer(vector<addrinfo *> hosts)
 {
     int option = 1;
+    int fd;
     for (unsigned long i = 0; i < hosts.size(); i++)
     {
-        int fd = socket(hosts[i]->ai_family, hosts[i]->ai_socktype, hosts[i]->ai_protocol);
+        fd = socket(hosts[i]->ai_family, hosts[i]->ai_socktype, hosts[i]->ai_protocol);
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)); 
 
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)); //
-        bind(fd, hosts[i]->ai_addr, hosts[i]->ai_addrlen);
-
-        if (errno < 0)
-            throw(std::logic_error(strerror(errno)));
-
-        listen(fd, 1000);
+        if(bind(fd, hosts[i]->ai_addr, hosts[i]->ai_addrlen) == -1 && close(fd))
+            continue;
+        if(listen(fd, 1024) == -1)
+            Config.throwConfigError(1 , "listen  fail") ;
 
         sockfds.push_back(fd);
-        epoll_event event;
-
-        event.events = EPOLLIN;
-        event.data.fd = fd;
-        epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &event);
-        // ADD_Events(fd, EPOLLIN ,EPOLL_CTL_ADD);
+        ADD_Events(fd, EPOLLIN ,EPOLL_CTL_ADD);
     }
 }
+
 
 bool Server::find(int fd)
 {
@@ -54,6 +50,13 @@ void Server::ADD_Events(int _fd, EPOLL_EVENTS ev, int op)
     epoll_ctl(epfd, op, _fd, &event);
 }
 
+void Server::ChangeMonitor(int fd)
+{
+    ADD_Events(fd, EPOLLIN, EPOLL_CTL_MOD);
+    delete serv[fd];
+    serv[fd] = new my_class(fd);
+}
+
 void Server::ForEachEvents(epoll_event *events, int n_events)
 {
     char buffer[4096];
@@ -65,43 +68,28 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
         if (this->find(fd))
         {
             // Accept connection code remains the same
-            std::cout << "\n\n============================ block connection ============================\n\n"
-                      << std::endl;
+            std::cout << "\n\n============================ block connection ============================\n\n" << std::endl;
             fd = accept(fd, NULL, NULL);
             serv[fd] = new my_class(fd);
-            epoll_event event;
-            event.events = EPOLLIN;
-            event.data.fd = fd;
-            epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &event);
+            ADD_Events(fd , EPOLLIN,EPOLL_CTL_ADD);
         }
         else if (events[i].events & EPOLLIN)
         {
             // begin 
             std::cout << "\n\n-------------------------- block request --------------------------\n\n" << std::endl;
-            ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+            ssize_t len = recv(fd, buffer, sizeof(buffer), 0);
 
-            buffer[len] = 0;
-            std::cout << buffer << std::endl;
-
-            if (len < 0)
+            if (len <= 0)
             {
-                // if (errno == EAGAIN || errno == EWOULDBLOCK)
-                //     continue;
-
-                // std::cout << "Receive error: " << strerror(errno) << std::endl;
-                close(fd);
-                continue;
-            }
-            if (len == 0)
-            {
-                std::cout << "Connection closed by client" << std::endl;
+                std::cout << "Connection closed" << std::endl;
                 close(fd);
                 continue;
             }
 
             if (static_cast<size_t>(len) < sizeof(buffer))
                 buffer[len] = '\0';
-            int reqParser_res = serv[fd]->req.Parse(std::string(buffer, len));
+    
+            int reqParser_res = serv[fd]->req.Parse(string(buffer, len));
 
             if (reqParser_res == 1)
             {
@@ -153,11 +141,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             case Method::GET:
             {
                 if (serv[fd]->res.Serve(fd, serv[fd]->resData))
-                {
-                    ADD_Events(fd, EPOLLIN, EPOLL_CTL_MOD);
-                    delete serv[fd];
-                    serv[fd] = new my_class(fd);
-                }
+                    ChangeMonitor(fd);
                 else
                 {
                 }
@@ -166,11 +150,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             case Method::POST:
             {
                 if (serv[fd]->res.Post(fd, serv[fd]->resData))
-                {
-                    ADD_Events(fd, EPOLLIN, EPOLL_CTL_MOD);
-                    delete serv[fd];
-                    serv[fd] = new my_class(fd);
-                }
+                    ChangeMonitor(fd);
                 else
                 {
                     std::cout << "Post failed" << std::endl;
@@ -181,11 +161,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             case Method::DELETE:
             {
                 if (serv[fd]->res.Delete(fd, serv[fd]->resData))
-                {
-                    ADD_Events(fd, EPOLLIN, EPOLL_CTL_MOD);
-                    delete serv[fd];
-                    serv[fd] = new my_class(fd);
-                }
+                    ChangeMonitor(fd);
                 break;
             }
             default:
@@ -197,14 +173,14 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
 
 void Server::CreatMultiplexing()
 {
-    epoll_event events[sockfds.size()];
+    epoll_event events[1024];
     std::map<int, my_class *>::iterator it;
     int n_events;
     it = serv.begin();
 
     while (true)
     {
-        n_events = epoll_wait(epfd, events, sockfds.size(), 0);
+        n_events = epoll_wait(epfd, events, 1024, 0);
         ForEachEvents(events, n_events);
 
         it = (it != serv.end() && it->second->check()) ? it++ : serv.begin();
