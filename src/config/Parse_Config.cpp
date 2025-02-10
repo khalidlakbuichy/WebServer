@@ -41,19 +41,26 @@ void _fill()
 
 ConfigLoader Parse_Config::operator()(const char *_str)
 {
-    string str = _str;
-    getKeyValue(str , ':');
-
     vector<ConfigLoader>::iterator it = blocks.begin();
+    string str = _str;
+    
+    try
+    {
+    getKeyValue(str , ':');
+    }
+    catch(const std::exception& e) 
+    {
+        std::cout << e.what() << std::endl;
+    }
+
     while(it != blocks.end())
     {
         if(it->server.find("host", key.data()) && it->server.find("port", value.data()))
             return(*it);
         it++;
     }
-    check_host = false;
-    // throwConfigError(true ,  "Error host is not exist");
-    return *it;
+    
+    return it[0];
 }
 
 Parse_Config::~Parse_Config()
@@ -191,7 +198,7 @@ void Parse_Config::push_back_data()
         loc.insert("methods" , "GET");
         loc.insert("root" , "www");
         loc.insert("index" , "index.html");
-        loc.insert("upload" , "/upload/files/");
+        loc.insert("upload" , "uploads");
         loc.insert("autoindex" , "off");
         data.location.push_back(loc);
     }
@@ -217,7 +224,7 @@ void Parse_Config::push_back_location()
     {
         loc.insert("root" , "www");
         loc.insert("index" , "index.html");
-        loc.insert("upload" , "/upload/files/");
+        loc.insert("upload" , "uploads");
         loc.insert("autoindex" , "off");
     }
 

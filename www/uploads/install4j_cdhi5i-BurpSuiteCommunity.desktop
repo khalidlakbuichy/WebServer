@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Name=Burp Suite Community Edition
+Exec="/home/abquaoub/BurpSuiteCommunity/BurpSuiteCommunity" %U
+MimeType=application/x-extension-burp;
+Icon=/home/abquaoub/BurpSuiteCommunity/.install4j/BurpSuiteCommunity.png
+Categories=Application;
+StartupWMClass=install4j-burp-StartBurp
+
