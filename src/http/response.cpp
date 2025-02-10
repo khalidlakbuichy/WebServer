@@ -120,7 +120,6 @@ void Response::InternalServerError(int client_socket, HttpRequestData &req)
 {
 	std::ifstream DefFile;
 	std::ifstream file(req._config_res["500"].c_str());
-
 	std::string body;
 	
 	if (!file.is_open())

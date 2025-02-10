@@ -250,7 +250,6 @@ int Response::Post(int client_socket, HttpRequestData &req)
 		BadRequest(client_socket, req);
 	else if (res < 0)
 		InternalServerError(client_socket, req);
-
 	remove(req._tmp_file_name.c_str());
 	return (1);
 }

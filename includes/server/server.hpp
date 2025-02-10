@@ -83,6 +83,11 @@ public:
     void ForEachEvents(epoll_event *events , int n_events );
     void ChangeMonitor(int fd);
 
+public:
+    void block_request(int fd);
+    void block_respond(int fd);
+    void ft_accept(int fd);
+
 };
 
 

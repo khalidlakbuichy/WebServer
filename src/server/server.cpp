@@ -9,6 +9,15 @@ Server::Server()
 }
 
 
+
+void set_nonblocking(int fd) {
+    int flags;
+
+    flags = fcntl(fd, F_GETFL, 0); 
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+
 void Server::CreatServer(vector<addrinfo *> hosts)
 {
     int option = 1;
@@ -16,12 +25,13 @@ void Server::CreatServer(vector<addrinfo *> hosts)
     for (unsigned long i = 0; i < hosts.size(); i++)
     {
         fd = socket(hosts[i]->ai_family, hosts[i]->ai_socktype, hosts[i]->ai_protocol);
+        set_nonblocking(fd);
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)); 
 
         if(bind(fd, hosts[i]->ai_addr, hosts[i]->ai_addrlen) == -1 && close(fd))
             continue;
         if(listen(fd, 1024) == -1)
-            Config.throwConfigError(1 , "listen  fail") ;
+            Config.throwConfigError(1 , "error in listen") ;
 
         sockfds.push_back(fd);
         ADD_Events(fd, EPOLLIN ,EPOLL_CTL_ADD);
@@ -57,38 +67,25 @@ void Server::ChangeMonitor(int fd)
     serv[fd] = new my_class(fd);
 }
 
-void Server::ForEachEvents(epoll_event *events, int n_events)
-{
-    char buffer[4096];
-    int fd;
 
-    for (int i = 0; i < n_events; i++)
-    {
-        fd = events[i].data.fd;
-        if (this->find(fd))
-        {
-            // Accept connection code remains the same
-            std::cout << "\n\n============================ block connection ============================\n\n" << std::endl;
-            fd = accept(fd, NULL, NULL);
-            serv[fd] = new my_class(fd);
-            ADD_Events(fd , EPOLLIN,EPOLL_CTL_ADD);
-        }
-        else if (events[i].events & EPOLLIN)
-        {
-            // begin 
-            std::cout << "\n\n-------------------------- block request --------------------------\n\n" << std::endl;
-            ssize_t len = recv(fd, buffer, sizeof(buffer), 0);
+void Server::block_request(int fd)
+{
+    std::cout << "\n\n-------------------------- block request --------------------------\n\n" << std::endl;
+
+    char buffer[4096];
+
+    ssize_t len = recv(fd, buffer, sizeof(buffer), 0);
 
             if (len <= 0)
             {
                 std::cout << "Connection closed" << std::endl;
                 close(fd);
-                continue;
+                return;
             }
 
             if (static_cast<size_t>(len) < sizeof(buffer))
                 buffer[len] = '\0';
-    
+
             int reqParser_res = serv[fd]->req.Parse(string(buffer, len));
 
             if (reqParser_res == 1)
@@ -102,7 +99,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
                         .Generate()
                         .Send(fd);
                     serv[fd]->resData._client_requesting_continue = 0;
-                    continue;
+                    return; 
                 }
                 else
                     ADD_Events(fd, EPOLLOUT, EPOLL_CTL_MOD); // Respond to the request
@@ -131,20 +128,21 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
                 Response::Http413(fd);
                 close(fd);
             }
-        }
-        else if (events[i].events & EPOLLOUT)
-        {
-            std::cout << "\n\n++++++++++++++++++++++++ block Response ++++++++++++++++++++++++\n\n" << std::endl;
-            Method::Type method = serv[fd]->resData._method;
+}
+
+
+
+void Server::block_respond(int fd)
+{
+    std::cout << "\n\n++++++++++++++++++++++++ block Response ++++++++++++++++++++++++\n\n" << std::endl;
+
+    Method::Type method = serv[fd]->resData._method;
             switch (method)
             {
             case Method::GET:
             {
                 if (serv[fd]->res.Serve(fd, serv[fd]->resData))
                     ChangeMonitor(fd);
-                else
-                {
-                }
                 break;
             }
             case Method::POST:
@@ -167,9 +165,39 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             default:
                 break;
             }
-        }
+}
+
+
+void Server::ft_accept(int fd)
+{
+    std::cout << "\n\n============================ block connection ============================\n\n" << std::endl;
+    fd = accept(fd, NULL, NULL);
+    set_nonblocking(fd);
+    serv[fd] = new my_class(fd);
+    ADD_Events(fd , EPOLLIN,EPOLL_CTL_ADD);
+}
+
+
+
+
+void Server::ForEachEvents(epoll_event *events, int n_events)
+{
+    int fd;
+
+    for (int i = 0; i < n_events; i++)
+    {
+        fd = events[i].data.fd;
+
+        if (find(fd))
+            ft_accept(fd);
+        else if (events[i].events & EPOLLIN)
+            block_request(fd);
+        else if (events[i].events & EPOLLOUT)
+          block_respond(fd);
     }
 }
+
+
 
 void Server::CreatMultiplexing()
 {
