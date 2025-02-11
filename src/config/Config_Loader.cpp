@@ -17,7 +17,10 @@ std::string ConfigLoader::operator[](const char *str)
     if(server.find(str))
         return(server[str]);
     if(!error.find(str))
+    {
+        std::cout << "return defatul page" << std::endl;
         return(string("www/errors/default.html"));
+    }
     return(error[str]);
 }
 
@@ -90,13 +93,13 @@ int ConfigLoader::empty()
 
 
 
-
 ///  functions  helper
 
 
 
 int strtrim(std::string &str , const char *sharset)
 {
+    str = str.substr(0 , str.find_last_of('#'));
     size_t fpos = str.find_first_not_of(sharset);
     size_t lpos = str.find_last_not_of(sharset);
     if(fpos == str.npos )

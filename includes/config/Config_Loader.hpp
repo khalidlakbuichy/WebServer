@@ -38,9 +38,11 @@ public:
     ~map(){};
 
 public:
+    std::string save;
     int count(T1 str);
     int empty();
     bool check(const char *str);
+    bool check(const char *str , bool c);
     bool find(std::string  str);
     bool find(const char * str);
     bool find(const char *s1 , const char *s2);
@@ -51,7 +53,7 @@ public:
 
 public:
     std::vector<std::string> & operator[](std::string str);
-    std::string &operator[](const char *str);
+    std::string & operator[](const char *str);
 };
 
 
@@ -77,9 +79,10 @@ public:
 
 public:
     t_map operator()(const char *);
-    std::string operator[](const char *str);
+    std::string  operator[](const char *str);
 
 public:
+    ssize_t _body_size;
     int empty();    
 };
 

@@ -3,24 +3,20 @@
 
 Parse_Config Config;
 
+
 int main(int ac, char **av)
 {
-	if (ac != 2)
+	if (ac > 2)
 		return 1;
-
-
 	Server server;
-
 	try
 	{
-	
 		Config.ParseFile(av[1]);
 
-		server.CreatServer(Config.getHosts());
-		
 		std::cout << "VALIIIIIIIIIIIIIIIIIID" << std::endl;
+		
+		server.CreatServer(Config.getHosts());
 		server.CreatMultiplexing();
-	
 	}
 	catch(const std::exception& e)
 	{

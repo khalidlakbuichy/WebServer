@@ -8,8 +8,6 @@ Server::Server()
     epfd = epoll_create(1);
 }
 
-
-
 void set_nonblocking(int fd) {
     int flags;
 
@@ -21,17 +19,21 @@ void set_nonblocking(int fd) {
 void Server::CreatServer(vector<addrinfo *> hosts)
 {
     int option = 1;
+    int err;
     int fd;
     for (unsigned long i = 0; i < hosts.size(); i++)
     {
         fd = socket(hosts[i]->ai_family, hosts[i]->ai_socktype, hosts[i]->ai_protocol);
+        Config.throwConfigError(fd < 0 , strerror(errno)) ;
+
         set_nonblocking(fd);
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)); 
 
-        if(bind(fd, hosts[i]->ai_addr, hosts[i]->ai_addrlen) == -1 && close(fd))
-            continue;
-        if(listen(fd, 1024) == -1)
-            Config.throwConfigError(1 , "error in listen") ;
+        err = bind(fd, hosts[i]->ai_addr, hosts[i]->ai_addrlen);
+        Config.throwConfigError(err < 0 , strerror(errno)) ;
+
+        err = listen(fd, 1024);
+        Config.throwConfigError(err < 0 , strerror(errno)) ;
 
         sockfds.push_back(fd);
         ADD_Events(fd, EPOLLIN ,EPOLL_CTL_ADD);
@@ -76,58 +78,58 @@ void Server::block_request(int fd)
 
     ssize_t len = recv(fd, buffer, sizeof(buffer), 0);
 
-            if (len <= 0)
-            {
-                std::cout << "Connection closed" << std::endl;
-                close(fd);
-                return;
-            }
-
-            if (static_cast<size_t>(len) < sizeof(buffer))
-                buffer[len] = '\0';
-
-            int reqParser_res = serv[fd]->req.Parse(string(buffer, len));
-
-            if (reqParser_res == 1)
-            {
-                serv[fd]->resData = serv[fd]->req.getResult();
-                if (serv[fd]->resData._client_requesting_continue) // Expect: 100-continue
-                {
-                    Response res;
-                    res.WithHttpVersion("HTTP/1.1")
-                        .WithStatus(100)
-                        .Generate()
-                        .Send(fd);
-                    serv[fd]->resData._client_requesting_continue = 0;
-                    return; 
-                }
-                else
-                    ADD_Events(fd, EPOLLOUT, EPOLL_CTL_MOD); // Respond to the request
-            }
-            else if (reqParser_res == 0)    // Continue
-            {
-                // ======>> wa9ila khass tkoun continue HNA
-            }
-            else if (reqParser_res == -1)   // Bad Request
-            {
-                Response::BadRequest(fd, serv[fd]->resData);
-                close(fd);
-            }
-            else if (reqParser_res == -2)   // Internal Server Error
-            {
-                Response::InternalServerError(fd, serv[fd]->resData);
-                close(fd);
-            }
-            else if (reqParser_res == -3)   // Unsupported Feature
-            {
-                Response::NotImplemented(fd, serv[fd]->resData);
-                close(fd);
-            }
-            else if (reqParser_res == -4)   // Payload too large
-            {
-                Response::Http413(fd);
-                close(fd);
-            }
+    if (len <= 0)
+    {
+        std::cout << "Connection closed" << std::endl;
+        close(fd);
+        return;
+    }
+    
+    if (static_cast<size_t>(len) < sizeof(buffer))
+        buffer[len] = '\0';
+    
+    int reqParser_res = serv[fd]->req.Parse(string(buffer, len));
+    
+    if (reqParser_res == 1)
+    {
+        serv[fd]->resData = serv[fd]->req.getResult();
+        if (serv[fd]->resData._client_requesting_continue) // Expect: 100-continue
+        {
+            Response res;
+            res.WithHttpVersion("HTTP/1.1")
+                .WithStatus(100)
+                .Generate()
+                .Send(fd);
+            serv[fd]->resData._client_requesting_continue = 0;
+            return; 
+        }
+        else
+            ADD_Events(fd, EPOLLOUT, EPOLL_CTL_MOD); // Respond to the request
+    }
+    else if (reqParser_res == 0)    // Continue
+    {
+        // ======>> wa9ila khass tkoun continue HNA
+    }
+    else if (reqParser_res == -1)   // Bad Request
+    {
+        Response::BadRequest(fd, serv[fd]->resData);
+        close(fd);
+    }
+    else if (reqParser_res == -2)   // Internal Server Error
+    {
+        Response::InternalServerError(fd, serv[fd]->resData);
+        close(fd);
+    }
+    else if (reqParser_res == -3)   // Unsupported Feature
+    {
+        Response::NotImplemented(fd, serv[fd]->resData);
+        close(fd);
+    }
+    else if (reqParser_res == -4)   // Payload too large
+    {
+        Response::Http413(fd);
+        close(fd);
+    }
 }
 
 
@@ -137,34 +139,34 @@ void Server::block_respond(int fd)
     std::cout << "\n\n++++++++++++++++++++++++ block Response ++++++++++++++++++++++++\n\n" << std::endl;
 
     Method::Type method = serv[fd]->resData._method;
-            switch (method)
-            {
-            case Method::GET:
-            {
-                if (serv[fd]->res.Serve(fd, serv[fd]->resData))
-                    ChangeMonitor(fd);
-                break;
-            }
-            case Method::POST:
-            {
-                if (serv[fd]->res.Post(fd, serv[fd]->resData))
-                    ChangeMonitor(fd);
-                else
-                {
-                    std::cout << "Post failed" << std::endl;
-                    exit(1);
-                }
-                break;
-            }
-            case Method::DELETE:
-            {
-                if (serv[fd]->res.Delete(fd, serv[fd]->resData))
-                    ChangeMonitor(fd);
-                break;
-            }
-            default:
-                break;
-            }
+    switch (method)
+    {
+    case Method::GET:
+    {
+        if (serv[fd]->res.Serve(fd, serv[fd]->resData))
+            ChangeMonitor(fd);
+        break;
+    }
+    case Method::POST:
+    {
+        if (serv[fd]->res.Post(fd, serv[fd]->resData))
+            ChangeMonitor(fd);
+        else
+        {
+            std::cout << "Post failed" << std::endl;
+            exit(1);
+        }
+        break;
+    }
+    case Method::DELETE:
+    {
+        if (serv[fd]->res.Delete(fd, serv[fd]->resData))
+            ChangeMonitor(fd);
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 
@@ -176,9 +178,6 @@ void Server::ft_accept(int fd)
     serv[fd] = new my_class(fd);
     ADD_Events(fd , EPOLLIN,EPOLL_CTL_ADD);
 }
-
-
-
 
 void Server::ForEachEvents(epoll_event *events, int n_events)
 {
@@ -196,8 +195,6 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
           block_respond(fd);
     }
 }
-
-
 
 void Server::CreatMultiplexing()
 {

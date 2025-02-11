@@ -403,9 +403,9 @@ int RequestParser::Parse(std::string request)
 
 				this->_res._body_length = stringToUnsignedLong(this->_res._headers["content-length"]);
 				
-				// TODO: change to number later.
-				if (this->_res._body_length <= 0 || this->_res._body_length > (unsigned long)atoi(_res._config_res["body_size"].data()))
-					return (this->_res._Error_msg = "Invalid Content-Length", -4);
+				// TODO: change to number later.  TODO: is fixed
+				if (_res._body_length <= 0 || (ssize_t)_res._body_length > _res._config_res._body_size)
+					return (_res._Error_msg = "Invalid Content-Length", -4);
 			}
 			else if (this->_res._headers.find("transfer-encoding") != this->_res._headers.end())
 			{

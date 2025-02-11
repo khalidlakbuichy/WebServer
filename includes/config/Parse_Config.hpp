@@ -1,6 +1,7 @@
 #ifndef PARSE_CONFIG_HPP
 #define PARSE_CONFIG_HPP
 
+#include <climits>
 #include "Config_Loader.hpp"
 
 using namespace std;
@@ -28,7 +29,6 @@ private:
     t_map loc;
     string key;
     string value;
-    string filename;
     bool check_host;
     bool _errno;
     int limit;
@@ -46,6 +46,7 @@ public:
 public:
     void CheckArrayOfValue(vector<string> &data ,int flag);
     void getKeyValue(string &line , char set);
+    ConfigLoader default_Server();
     void ParseFile(const char *_file);
     void CheckString(string &str);
     int CheckCharacter(char c);

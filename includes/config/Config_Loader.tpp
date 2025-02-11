@@ -8,7 +8,7 @@ namespace http
 template<class T1 , class T2>
 int map<T1 , T2>::count(T1 str)
 {
-        return(data.count(str));
+    return(data.count(str));
 }
 
 template<class T1 , class T2>
@@ -49,9 +49,8 @@ int map<T1 , T2>::empty()
 
 template<class T1 , class T2>
 bool map<T1 , T2>::check(const char *str)
-{
-
-    if(!std::string(str).compare("autoindex"))
+{   
+    if(std::string(str) == "autoindex")
         return(data["autoindex"][0] == "on");
     
     if(!data["methods"].empty())
@@ -60,14 +59,29 @@ bool map<T1 , T2>::check(const char *str)
         if(std::count(met.begin(), met.end(), str))
             return 1;
     }
+
     return (0);
 }
 
+template<class T1 , class T2>
+bool map<T1 , T2>::check(const char *str , bool c)
+{
+    (void)c;
+
+    if(string(str)[0] != 'D' && !data["methods"].empty())
+    {
+        std::vector<std::string> met = data["methods"];
+        if(std::count(met.begin(), met.end(), str))
+            return 1;
+    }
+
+    return (0);
+}
 
 template<class T1 , class T2>
 void map<T1 , T2>::insert(const char *s1 , const char *s2)
 {
-    if(!find(s1))
+    if(!this->find(s1))
         data[s1].push_back(s2);
 }
 
@@ -79,7 +93,7 @@ std::vector<std::string> & map<T1 , T2>::operator[](std::string str)
 }
 
 template<class T1 , class T2>
-std::string  & map<T1 , T2>::operator[](const char *str)
+std::string &  map<T1 , T2>::operator[](const char *str)
 {
     return(data[str][0]);
 }
