@@ -3,6 +3,10 @@
 
 #include <unistd.h>
 #include <sys/wait.h>
+#include <poll.h>
+#include <fcntl.h>
+#include <sys/time.h>
+#include <signal.h>
 #include <string>
 #include <map>
 #include <vector>
@@ -38,7 +42,7 @@ public:
 			   const std::string &content_type,
 			   const std::string &body,
 			   const std::string &cookies,
-			   const std::string &path_info,
+			   const std::string &path_info,// PATH_INFO: identifies the resource or sub-resource to be returned by the CGI script, and it is derived from the portion of the URI path following the script name but preceding any query data.
 			   const std::string &interpreter);
 
 	~RequestCgi();
