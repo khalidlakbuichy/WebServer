@@ -8,7 +8,7 @@ namespace http
 template<class T1 , class T2>
 int map<T1 , T2>::count(T1 str)
 {
-    return(data.count(str));
+        return(data.count(str));
 }
 
 template<class T1 , class T2>
@@ -81,7 +81,7 @@ bool map<T1 , T2>::check(const char *str , bool c)
 template<class T1 , class T2>
 void map<T1 , T2>::insert(const char *s1 , const char *s2)
 {
-    if(!this->find(s1))
+    if(!find(s1))
         data[s1].push_back(s2);
 }
 
@@ -95,7 +95,23 @@ std::vector<std::string> & map<T1 , T2>::operator[](std::string str)
 template<class T1 , class T2>
 std::string &  map<T1 , T2>::operator[](const char *str)
 {
-    return(data[str][0]);
+    std::vector<std::string> it;
+    size_t tt;
+    save = "";
+    if(!data[str].empty())
+        save = data[str][0];
+    else
+    {
+    it = data["cgi"];
+
+    for(unsigned long i = 0; i < it.size() ;i++)
+    {
+        tt = it[i].find(':');
+        if(std::string(str) == it[i].substr(0 , it[i].find(':')))
+            save = it[i].substr(tt + 1 , it[i].npos);
+    }
+    }
+    return(save);
 }
 
 

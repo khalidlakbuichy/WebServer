@@ -15,6 +15,7 @@ int main(int ac, char **av)
 
 		std::cout << "VALIIIIIIIIIIIIIIIIIID" << std::endl;
 		
+		std::cout << Config("localhost")._body_size << std::endl;
 		server.CreatServer(Config.getHosts());
 		server.CreatMultiplexing();
 	}

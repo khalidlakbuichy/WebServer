@@ -71,18 +71,16 @@ ConfigLoader Parse_Config::operator()(const char *_str)
     vector<ConfigLoader> it = blocks;
     string str = _str;
 
-    try 
-    {
-    getKeyValue(str , ':');
-    
-    for(unsigned long i = 0; i < blocks.size() ; i++)
-    {
-        if((it[i].server.find("host", key.data()) || it[i].server.find("server_name", key.data())) && it[i].server.find("port", value.data()))
-            return(it[i]);
-    }
-    }
+    try {getKeyValue(str , ':');}
     catch(const std::exception& e) {}
 
+    for(unsigned long i = 0; i < blocks.size() ; i++)
+    {
+        _errno = (it[i].server.find("host", key.data()) || it[i].server.find("server_name", key.data())) && it[i].server.find("port", value.data());
+        _errno += it[i].server.find("server_name", _str);
+        if(_errno)
+            return(it[i]);
+    }
     it[0] = default_Server();
     return it[0];
 }
