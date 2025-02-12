@@ -76,7 +76,7 @@ static void trim(std::string &str) {
     str.erase(str.find_last_not_of(whitespace) + 1);
 }
 
-// =================== Non-Blocking CGI Handler Function with Timeout ===================
+// =================== Non-Blocking CGI Handler Function with Timeout and File-Based Request Body ===================
 void handleCGI(RequestCgi &request, ResponseCgi &response) {
     std::string interpreter = request.getInterpreter();
     std::string scriptFile  = request.getScriptName();
@@ -107,9 +107,9 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
         return;
     }
 
-    // Set the parent's ends of the pipes to non-blocking.
-    fcntl(stdin_pipe[1], F_SETFL, O_NONBLOCK, FD_CLOEXEC);
-    fcntl(stdout_pipe[0], F_SETFL, O_NONBLOCK, FD_CLOEXEC);
+    // Set the parent's ends of the pipes to non-blocking with FD_CLOEXEC.
+    fcntl(stdin_pipe[1], F_SETFL, O_NONBLOCK | FD_CLOEXEC);
+    fcntl(stdout_pipe[0], F_SETFL, O_NONBLOCK | FD_CLOEXEC);
 
     // Fork the process.
     pid_t pid = fork();
@@ -121,7 +121,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
         close(stdin_pipe[1]);
         close(stdout_pipe[0]);
 
-        // Duplicate the pipe ends.
+        // Redirect child's STDIN and STDOUT.
         dup2(stdin_pipe[0], STDIN_FILENO);
         dup2(stdout_pipe[1], STDOUT_FILENO);
 
@@ -138,40 +138,53 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
                          const_cast<char*>(scriptFile.c_str()),
                          NULL };
         execve(interpreter.c_str(), argv, &envp[0]);
-        _exit(EXIT_FAILURE); // In case execve fails.
+        _exit(EXIT_FAILURE); // If execve fails.
     }
     else {  // Parent process
         close(stdin_pipe[0]);
         close(stdout_pipe[1]);
 
-        std::string request_body = request.getBody();
-        size_t body_written = 0;
-        std::string cgi_output;  // Will accumulate the full CGI output (headers + body)
+        // Instead of a string body, we treat request.getBody() as a file path.
+        std::string body_file_path = request.getBody();
+        int file_fd = open(body_file_path.c_str(), O_RDONLY);
+        if (file_fd < 0) {
+            response.setStatus(500);
+            return;
+        }
 
-        // Set up poll file descriptors:
+        // Variables for reading the file contents.
+        char file_buf[4096];
+        ssize_t bytes_in_buffer = 0;
+        ssize_t buffer_offset = 0;
+        bool eof_reached = false;
+
+        std::string cgi_output;
+
         pollfd fds[2];
-        fds[0].fd = stdin_pipe[1]; // Write end for CGI's STDIN
+        fds[0].fd = stdin_pipe[1];
         fds[0].events = POLLOUT;
-        fds[1].fd = stdout_pipe[0]; // Read end for CGI's STDOUT
+        fds[1].fd = stdout_pipe[0];
         fds[1].events = POLLIN;
 
         bool stdin_closed = false;
         bool stdout_closed = false;
 
-        // Set overall timeout (in milliseconds) for the CGI response.
-        const int overall_timeout_ms = 5000; // 5 seconds
+        
+        const int overall_timeout_ms = 5000; // 5 seconds.
         struct timeval start, now;
         gettimeofday(&start, NULL);
 
-        // Main poll loop.
+        
         while (!stdin_closed || !stdout_closed) {
             gettimeofday(&now, NULL);
-            long elapsed_ms = (now.tv_sec - start.tv_sec) * 1000 + (now.tv_usec - start.tv_usec) / 1000;
+            long elapsed_ms = (now.tv_sec - start.tv_sec) * 1000 +
+                              (now.tv_usec - start.tv_usec) / 1000;
             if (elapsed_ms >= overall_timeout_ms) {
                 // Overall timeout reached: kill CGI process and return 504.
                 kill(pid, SIGKILL);
                 waitpid(pid, NULL, 0);
-                response.setStatus(504);  // Gateway Timeout
+                response.setStatus(504);  // Gateway Timeout.
+                close(file_fd);
                 return;
             }
 
@@ -179,51 +192,75 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
             int ret = poll(fds, 2, poll_timeout);
             if (ret < 0) {
                 response.setStatus(500);
+                close(file_fd);
                 return;
             }
 
-            // Write request body to CGI if needed.
+            // --- Write request body from file to CGI's STDIN ---
             if (!stdin_closed && (fds[0].revents & POLLOUT)) {
-                if (!request_body.empty()) {
-                    ssize_t n = write(stdin_pipe[1],
-                                      request_body.c_str() + body_written,
-                                      request_body.size() - body_written);
-                    if (n > 0) {
-                        body_written += n;
+                // If no pending data in our buffer and file not at EOF, try to read.
+                if (bytes_in_buffer == 0 && !eof_reached) {
+                    bytes_in_buffer = read(file_fd, file_buf, sizeof(file_buf));
+                    if (bytes_in_buffer < 0) {
+                        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                            response.setStatus(500);
+                            close(file_fd);
+                            return;
+                        } else {
+                            bytes_in_buffer = 0;
+                        }
+                    } else if (bytes_in_buffer == 0) {
+                        // End of file reached.
+                        eof_reached = true;
                     }
-                    else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+                    buffer_offset = 0;
+                }
+                // Write any buffered data.
+                if (bytes_in_buffer > 0) {
+                    ssize_t n = write(stdin_pipe[1],
+                                      file_buf + buffer_offset,
+                                      bytes_in_buffer - buffer_offset);
+                    if (n > 0) {
+                        buffer_offset += n;
+                        if (buffer_offset >= bytes_in_buffer) {
+                            // All data in the buffer was written.
+                            bytes_in_buffer = 0;
+                            buffer_offset = 0;
+                        }
+                    } else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
                         response.setStatus(500);
+                        close(file_fd);
                         return;
                     }
                 }
-                if (body_written >= request_body.size() || request_body.empty()) {
+                // If the file is finished and no pending data remains, close the write end.
+                if (eof_reached && bytes_in_buffer == 0) {
                     close(stdin_pipe[1]);
                     stdin_closed = true;
                     fds[0].fd = -1;
+                    close(file_fd);
                 }
             }
 
-            // Read CGI output.
+            // --- Read CGI output from its STDOUT ---
             if (!stdout_closed && (fds[1].revents & (POLLIN | POLLHUP))) {
                 char buffer[4096];
                 ssize_t n = read(stdout_pipe[0], buffer, sizeof(buffer));
                 if (n > 0) {
                     cgi_output.append(buffer, n);
-                }
-                else if (n == 0) {
+                } else if (n == 0) {
                     // End-of-file: close the pipe.
                     close(stdout_pipe[0]);
                     stdout_closed = true;
                     fds[1].fd = -1;
-                }
-                else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+                } else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
                     response.setStatus(500);
                     return;
                 }
             }
-        } // end poll loop
+        } // End of poll loop.
 
-        // Wait for CGI process termination.
+        // Wait for the CGI process to terminate.
         int status;
         waitpid(pid, &status, 0);
         if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
@@ -267,11 +304,11 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
                     }
                 }
             }
-            // Body begins after the "\r\n\r\n" delimiter.
+            // The body starts after the "\r\n\r\n" delimiter.
             body_content = cgi_output.substr(header_end + 4);
         }
 
-        // Overwrite the temporary file so that it contains only the body.
+        // Overwrite the temporary file so it contains only the body.
         std::ofstream bodyFile(tmpFileName, std::ios::binary | std::ios::trunc);
         if (!bodyFile) {
             response.setStatus(500);
