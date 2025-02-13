@@ -151,11 +151,6 @@ void Server::block_respond(int fd)
     {
         if (serv[fd]->res.Post(fd, serv[fd]->resData))
             ChangeMonitor(fd);
-        else
-        {
-            std::cout << "Post failed" << std::endl;
-            exit(1);
-        }
         break;
     }
     case Method::DELETE:

@@ -11,6 +11,7 @@ void Response::Http301(int client_socket, std::string redirection_link)
 		.Generate()
 		.Send(client_socket);
 }
+
 bool Response::OpenFile(const std::string &resolvedPath, HttpRequestData &req, int client_socket)
 {
 	(void)client_socket;
@@ -43,7 +44,9 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 		size_t lastDot = resolvedPath.find_last_of('.');									  // [ www/login.php ]
 		std::string ext = (lastDot != std::string::npos) ? resolvedPath.substr(lastDot) : ""; // [ .php ]
 
-		if (ext == ".php") // TODO : ABDELBASSET ==> check if ext is listed in the conf file, for now i manually added php
+		ext = req._location_res[ext.data()];
+
+		if (!ext.empty()) // TODO: ABDELBASSET ==> (DONE)
 		{
 			RequestCgi req_cgi("GET",
 							   resolvedPath,   // Script Path    (DONE)
@@ -54,9 +57,10 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 							   req._headers.find("Cookie") != req._headers.end() // TODO (@KHALID) is cookie header a menadatory ?
 								   ? req._headers["Cookie"]
 								   : "",		  // Cookies		  (DONE)
-							   "",				  // Path_info      (X) // TODO : (@khalid) what should be here ?
-							   "/usr/bin/php-cgi" // Interpreter    (@) //TODO : (@ABDELBASSET) from the [std::string ext] above, get the interpreter from the conf file
-			);
+							   "",
+							   ext			  // Path_info      (X) // TODO : (@khalid) what should be here ?
+							    // Interpreter    (@) //TODO: (@ABDELBASSET) (DONE)
+			);										
 			ResponseCgi res_cgi;
 			handleCGI(req_cgi, res_cgi);
 

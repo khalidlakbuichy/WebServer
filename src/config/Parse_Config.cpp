@@ -144,7 +144,7 @@ void Parse_Config::CheckBlockLocation()
 
     _errno = !loc.find("uri");
     _errno += key[0] == 'a' && (value != "on" && value != "off");
-    _errno += key[0] == 'c' && value.find(':') == value.npos;
+    _errno += key[0] == 'c' && (value.find(':') == value.npos || value.find(':') == value.size() - 1);
     throwConfigError(_errno, "The [server.location] configuration is incorrect. Please ensure all parameters are valid.");
 }
 
@@ -166,7 +166,7 @@ void Parse_Config::CheckInfoServer()
         _errno = pos != (value.size() - 1) || (value[pos] != 'K' && value[pos] != 'M');
         _errno += ((data._body_size = strtol(value.c_str() , NULL , 10)) > INT_MAX) ;
         throwConfigError(_errno , "The value must be a number followed by a unit ('M' -> MB, 'K' -> KB).");
-        data._body_size *= (value[pos] == 'M' ? 2048 : 1024);
+        data._body_size *= (value[pos] == 'M' ? 1024 : 1) * 1024;
     }
 }
 

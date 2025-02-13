@@ -100,8 +100,8 @@ struct HttpRequestData
 	std::string							_boundary;
 	std::map<std::string, std::string>	_Fields;
 
-	// Confif File Data
-/*TODO:*/ConfigLoader					_config_res;
+	// Config File Data
+	ConfigLoader					_config_res;
 	t_map								_location_res;
 
 	// Flags

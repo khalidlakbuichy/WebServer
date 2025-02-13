@@ -404,6 +404,7 @@ int RequestParser::Parse(std::string request)
 				this->_res._body_length = stringToUnsignedLong(this->_res._headers["content-length"]);
 				
 				// TODO: change to number later.  TODO: is fixed
+				std::cout << _res._body_length << "  " << _res._config_res._body_size << std::endl;
 				if (_res._body_length <= 0 || (ssize_t)_res._body_length > _res._config_res._body_size)
 					return (_res._Error_msg = "Invalid Content-Length", -4);
 			}
