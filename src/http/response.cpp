@@ -209,7 +209,6 @@ Response &Response::Generate(int isChunked)
 }
 int Response::Send(int client_socket)
 {
-	std::cout << "Response: " << _Resp << std::endl;
 	send(client_socket, this->_Resp.c_str(), this->_Resp.size(), MSG_NOSIGNAL); // Send response
 	Clear();
 	return 0;

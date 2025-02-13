@@ -103,6 +103,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
     int stdin_pipe[2];
     int stdout_pipe[2];
     if (pipe(stdin_pipe) != 0 || pipe(stdout_pipe) != 0) {
+        std::cout << "here" << std::endl;
         response.setStatus(500);
         return;
     }
@@ -114,6 +115,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
     // Fork the process.
     pid_t pid = fork();
     if (pid == -1) {
+        std::cout << "here2" << std::endl;
         response.setStatus(500);
         return;
     }
@@ -148,6 +150,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
         std::string body_file_path = request.getBody();
         int file_fd = open(body_file_path.c_str(), O_RDONLY);
         if (file_fd < 0) {
+            std::cout << "here3" << std::endl;
             response.setStatus(500);
             return;
         }
@@ -191,6 +194,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
             int poll_timeout = overall_timeout_ms - elapsed_ms;
             int ret = poll(fds, 2, poll_timeout);
             if (ret < 0) {
+                std::cout << "here4" << std::endl;
                 response.setStatus(500);
                 close(file_fd);
                 return;
@@ -203,6 +207,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
                     bytes_in_buffer = read(file_fd, file_buf, sizeof(file_buf));
                     if (bytes_in_buffer < 0) {
                         if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                            std::cout << "here5" << std::endl;
                             response.setStatus(500);
                             close(file_fd);
                             return;
@@ -228,6 +233,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
                             buffer_offset = 0;
                         }
                     } else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+                        std::cout << "here6" << std::endl;
                         response.setStatus(500);
                         close(file_fd);
                         return;
@@ -254,6 +260,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
                     stdout_closed = true;
                     fds[1].fd = -1;
                 } else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
+                    std::cout << "here7" << std::endl;
                     response.setStatus(500);
                     return;
                 }
@@ -269,9 +276,10 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
         }
 
         // Create a temporary file to store only the CGI body.
-        char tmpFileName[] = "/tmp/cgi_response_XXXXXX";
+        char tmpFileName[] = "www/tmp/cgi_response_XXXXXX";
         int tmp_fd = mkstemp(tmpFileName);
         if (tmp_fd == -1) {
+            std::cout << "here8" << std::endl;
             response.setStatus(500);
             return;
         }
@@ -311,6 +319,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
         // Overwrite the temporary file so it contains only the body.
         std::ofstream bodyFile(tmpFileName, std::ios::binary | std::ios::trunc);
         if (!bodyFile) {
+            std::cout << "here9" << std::endl;
             response.setStatus(500);
             return;
         }

@@ -29,9 +29,6 @@ bool Response::OpenFile(const std::string &resolvedPath, HttpRequestData &req, i
 	return true;
 }
 
-// /IMAGE.PHP
-// resCGI =  hanglecgi(HttpRequestData, resCGI);
-// res.CGI.getStatus() = 200 / 404 - 500
 int Response::Serve(int client_socket, HttpRequestData &req)
 {
 	const size_t chunk_threshold = 2 * 1024 * 1024; // 2mb
@@ -40,9 +37,53 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 	std::string Root = req._location_res["root"];
 	std::string resolvedPath = Root + req._uri.host; // No index file concat yet.
 
-	if (true)
+	// ***CGI***
+	if (req._location_res.find("cgi"))
 	{
+		size_t lastDot = resolvedPath.find_last_of('.');									  // [ www/login.php ]
+		std::string ext = (lastDot != std::string::npos) ? resolvedPath.substr(lastDot) : ""; // [ .php ]
+
+		if (ext == ".php") // TODO : ABDELBASSET ==> check if ext is listed in the conf file, for now i manually added php
+		{
+			RequestCgi req_cgi("GET",
+							   resolvedPath,   // Script Path    (DONE)
+							   req._uri.query, // Query_string   (DONE)
+							   "",			   // Content_length (NO Need for GET)
+							   "",			   // Content_Type   (NO Need for GET)
+							   "www/tmp/test", // Body as file	  (DONE) NO Need for GET // TODO (@KHALID), if it possible, no need to pass the tmp file in the GET requests, so instead of passing that empty tmp file to prevent Internel Error, try to not open the tmp file in case of GET method
+							   req._headers.find("Cookie") != req._headers.end() // TODO (@KHALID) is cookie header a menadatory ?
+								   ? req._headers["Cookie"]
+								   : "",		  // Cookies		  (DONE)
+							   "",				  // Path_info      (X) // TODO : (@khalid) what should be here ?
+							   "/usr/bin/php-cgi" // Interpreter    (@) //TODO : (@ABDELBASSET) from the [std::string ext] above, get the interpreter from the conf file
+			);
+			ResponseCgi res_cgi;
+			handleCGI(req_cgi, res_cgi);
+
+			if (res_cgi.getStatus() == 200)
+			{
+				if (!OpenFile(res_cgi.getBodyFile(), req, client_socket))
+					return (InternalServerError(client_socket, req), 1);
+
+				Response custom_res;
+				custom_res.WithStatus(200).WithHttpVersion("HTTP/1.1").setDefaultHeaders();
+				for (std::map<std::string, std::string>::const_iterator it = res_cgi.getHeaders().begin();
+					 it != res_cgi.getHeaders().end();
+					 ++it)
+				{
+					custom_res.WithHeader((it->first + ":"), it->second);
+				}
+				std::string body;
+				body.assign((std::istreambuf_iterator<char>(_file)), std::istreambuf_iterator<char>());
+
+				custom_res.WithBody(body).Generate().Send(client_socket);
+				return (1);
+			}
+			else if (res_cgi.getStatus() > 500) // TODO: I WILL DETAIL THE 5.. RES LATER
+				return (InternalServerError(client_socket, req), 1);
+		}
 	}
+	// *********
 
 	// If GET method supported.
 	if (!req._location_res.check("GET"))
@@ -111,10 +152,11 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 int Response::ServeFile(int client_socket, std::string resolvedPath, HttpRequestData &req)
 {
 	std::string body;
+	(void)req;
 
 	body.assign((std::istreambuf_iterator<char>(_file)), std::istreambuf_iterator<char>()); // TODO May fail here, in case of file not found or other errors.
 
-	(this)->WithHttpVersion(Version::toString(req._version)).WithStatus(200).setDefaultHeaders().WithHeader("Content-Type", GetMimeType(resolvedPath)).WithBody(body).Generate().Send(client_socket);
+	(this)->WithHttpVersion(Version::toString(Version::HTTP_1_1)).WithStatus(200).setDefaultHeaders().WithHeader("Content-Type", GetMimeType(resolvedPath)).WithBody(body).Generate().Send(client_socket);
 
 	_file.close();
 	return 1;
