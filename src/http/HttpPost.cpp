@@ -62,12 +62,6 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 
 	std::string fullDir = Root + Upload_dir;
 
-	// if Method Supported in this location
-	if (!req._location_res.check("POST"))
-	{
-		MethodNotAllowed(client_socket, req);
-		return (1);
-	}
 	// if upload dirr is exist
 	if (!isDirectory(fullDir))
 		return (req._Error_msg = "Unacessible upload folder", -1);
@@ -247,51 +241,12 @@ int Response::Post(int client_socket, HttpRequestData &req)
 	std::string Root = req._location_res["root"];
 	std::string resolvedPath = Root + req._uri.host; // No index file concat yet.
 
-	if (req._location_res.find("cgi"))
-	{
-		size_t lastDot = resolvedPath.find_last_of('.');									  // [ www/login.php ]
-		std::string ext = (lastDot != std::string::npos) ? resolvedPath.substr(lastDot) : ""; // [ .php ]
-
-		if (ext == ".php")
-		{
-			RequestCgi req_cgi("GET",
-							   resolvedPath,				   // Script Path    (DONE)
-							   req._uri.query,				   // Query_string   (DONE)
-							   req._content_type,			   // Content_length (NO Need for GET)
-							   req._headers["content-length"], // Content_Type   (NO Need for GET)
-							   req._tmp_file_name,			   // Body as file	  (DONE) NO Need for GET
-							   req._headers.find("Cookie") != req._headers.end()
-								   ? req._headers["Cookie"]
-								   : "",		  // Cookies		  (DONE)
-							   "",				  // Path_info      (X)
-							   "/usr/bin/php-cgi" // Interpreter    (@)
-			);
-			ResponseCgi res_cgi;
-			handleCGI(req_cgi, res_cgi);
-
-			if (res_cgi.getStatus() == 200)
-			{
-				if (!OpenFile(res_cgi.getBodyFile(), req, client_socket))
-					return (InternalServerError(client_socket, req), 1);
-
-				Response custom_res;
-				custom_res.WithStatus(200).WithHttpVersion("HTTP/1.1").setDefaultHeaders();
-				for (std::map<std::string, std::string>::const_iterator it = res_cgi.getHeaders().begin();
-					 it != res_cgi.getHeaders().end();
-					 ++it)
-				{
-					custom_res.WithHeader((it->first + ":"), it->second);
-				}
-				std::string body;
-				body.assign((std::istreambuf_iterator<char>(_file)), std::istreambuf_iterator<char>());
-
-				custom_res.WithBody(body).Generate().Send(client_socket);
-				return (1);
-			}
-			else if (res_cgi.getStatus() > 500) // TODO: I WILL DETAIL THE 5.. RES LATER
-				return (InternalServerError(client_socket, req), 1);
-		}
-	}
+	// ***CGI***
+	std::string ext = (resolvedPath.find_last_of('.') != std::string::npos) ? resolvedPath.substr(resolvedPath.find_last_of('.'))
+																			: ""; // [ ".php" || ""]
+	if (req._location_res.find("cgi") && !req._location_res[ext.data()].empty())
+		return (ServeCGI(client_socket, ext, req));
+	// *********
 
 	if (!req._location_res.check("POST"))
 	{

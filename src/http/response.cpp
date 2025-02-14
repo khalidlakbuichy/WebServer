@@ -209,7 +209,7 @@ Response &Response::Generate(int isChunked)
 }
 int Response::Send(int client_socket)
 {
-	send(client_socket, this->_Resp.c_str(), this->_Resp.size(), MSG_NOSIGNAL); // Send response
+	send(client_socket, this->_Resp.c_str(), this->_Resp.size(), MSG_NOSIGNAL | MSG_DONTWAIT); // Send response
 	Clear();
 	return 0;
 }

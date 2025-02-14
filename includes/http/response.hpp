@@ -60,10 +60,11 @@ public:
 	void Clear();
 
 	// Get
-	bool 		OpenFile(const std::string &resolvedPath, HttpRequestData &req, int client_socket);
-	int 		Serve(int client_socket, HttpRequestData &req);
-	int 		ServeDirectory(int client_socket, std::string DirPath, HttpRequestData &req);
-	int 		ServeFile(int client_socket, std::string resolvedPath, HttpRequestData &req);
+	bool OpenFile(const std::string &resolvedPath, HttpRequestData &req, int client_socket);
+	int Serve(int client_socket, HttpRequestData &req);
+	int ServeDirectory(int client_socket, std::string DirPath, HttpRequestData &req);
+	int ServeFile(int client_socket, std::string resolvedPath, HttpRequestData &req);
+	int ServeCGI(int client_socket, std::string ext, HttpRequestData &req);
 	// Post
 	int ParseMultiPartFormData(HttpRequestData &req, int client_socket);
 	int Post(int client_socket, HttpRequestData &req);

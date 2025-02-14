@@ -11,7 +11,6 @@ void Response::Http301(int client_socket, std::string redirection_link)
 		.Generate()
 		.Send(client_socket);
 }
-
 bool Response::OpenFile(const std::string &resolvedPath, HttpRequestData &req, int client_socket)
 {
 	(void)client_socket;
@@ -29,64 +28,17 @@ bool Response::OpenFile(const std::string &resolvedPath, HttpRequestData &req, i
 	this->_file.seekg(0, std::ios::beg);
 	return true;
 }
-
 int Response::Serve(int client_socket, HttpRequestData &req)
 {
 	const size_t chunk_threshold = 2 * 1024 * 1024; // 2mb
 	const size_t buffer_size = 4096;				// 4kb
-
-	std::string Root = req._location_res["root"];
-	std::string resolvedPath = Root + req._uri.host; // No index file concat yet.
+	std::string resolvedPath = req._location_res["root"] + req._uri.host;
 
 	// ***CGI***
-	if (req._location_res.find("cgi"))
-	{
-		size_t lastDot = resolvedPath.find_last_of('.');									  // [ www/login.php ]
-		std::string ext = (lastDot != std::string::npos) ? resolvedPath.substr(lastDot) : ""; // [ .php ]
-
-		ext = req._location_res[ext.data()];
-
-		if (!ext.empty()) // TODO: ABDELBASSET ==> (DONE)
-		{
-			RequestCgi req_cgi("GET",
-							   resolvedPath,   // Script Path    (DONE)
-							   req._uri.query, // Query_string   (DONE)
-							   "",			   // Content_length (NO Need for GET)
-							   "",			   // Content_Type   (NO Need for GET)
-							   "www/tmp/test", // Body as file	  (DONE) NO Need for GET // TODO (@KHALID), if it possible, no need to pass the tmp file in the GET requests, so instead of passing that empty tmp file to prevent Internel Error, try to not open the tmp file in case of GET method
-							   req._headers.find("Cookie") != req._headers.end() // TODO (@KHALID) is cookie header a menadatory ?
-								   ? req._headers["Cookie"]
-								   : "",		  // Cookies		  (DONE)
-							   "",
-							   ext			  // Path_info      (X) // TODO : (@khalid) what should be here ?
-							    // Interpreter    (@) //TODO: (@ABDELBASSET) (DONE)
-			);										
-			ResponseCgi res_cgi;
-			handleCGI(req_cgi, res_cgi);
-
-			if (res_cgi.getStatus() == 200)
-			{
-				if (!OpenFile(res_cgi.getBodyFile(), req, client_socket))
-					return (InternalServerError(client_socket, req), 1);
-
-				Response custom_res;
-				custom_res.WithStatus(200).WithHttpVersion("HTTP/1.1").setDefaultHeaders();
-				for (std::map<std::string, std::string>::const_iterator it = res_cgi.getHeaders().begin();
-					 it != res_cgi.getHeaders().end();
-					 ++it)
-				{
-					custom_res.WithHeader((it->first + ":"), it->second);
-				}
-				std::string body;
-				body.assign((std::istreambuf_iterator<char>(_file)), std::istreambuf_iterator<char>());
-
-				custom_res.WithBody(body).Generate().Send(client_socket);
-				return (1);
-			}
-			else if (res_cgi.getStatus() > 500) // TODO: I WILL DETAIL THE 5.. RES LATER
-				return (InternalServerError(client_socket, req), 1);
-		}
-	}
+	std::string ext = (resolvedPath.find_last_of('.') != std::string::npos) ? resolvedPath.substr(resolvedPath.find_last_of('.'))
+																			: ""; // [ ".php" || ""]
+	if (req._location_res.find("cgi") && !req._location_res[ext.data()].empty())
+		return (ServeCGI(client_socket, req._location_res[ext.data()], req));
 	// *********
 
 	// If GET method supported.
@@ -101,7 +53,6 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 		Http301(client_socket, req._location_res["redirect"]);
 		return 1;
 	}
-
 	// check if a req is for a dir
 	if (isDirectory(resolvedPath))
 	{
@@ -117,7 +68,6 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 			return ServeDirectory(client_socket, resolvedPath, req);
 		}
 	}
-
 	if (!_file.is_open())
 	{
 		if (!OpenFile(resolvedPath, req, client_socket))
@@ -152,7 +102,6 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 		return 0; // Not done, continue through epoll
 	}
 }
-
 int Response::ServeFile(int client_socket, std::string resolvedPath, HttpRequestData &req)
 {
 	std::string body;
@@ -202,4 +151,37 @@ int Response::ServeDirectory(int client_socket, std::string DirPath, HttpRequest
 	(this)->WithHttpVersion("HTTP/1.1").WithStatus(200).setDefaultHeaders().WithHeader("Content-Type", "text/html").WithBody(html.str()).Generate().Send(client_socket);
 
 	return 1;
+}
+int Response::ServeCGI(int client_socket, std::string ext, HttpRequestData &req)
+{
+	RequestCgi req_cgi = setupCgiRequest(req, ext);
+	ResponseCgi res_cgi;
+	handleCGI(req_cgi, res_cgi);
+	std::ifstream generated_file;
+
+	if (res_cgi.getStatus() > 500) // TODO: I WILL DETAIL THE 5.. RES LATER
+	{
+		std::cout << "bec of here" << std::endl;
+		return (InternalServerError(client_socket, req), 1);
+	}
+	else
+	{
+		generated_file.open(res_cgi.getBodyFile().c_str(), std::ios::in | std::ios::binary);
+		if (!generated_file.is_open())
+			return (InternalServerError(client_socket, req), 1);
+
+		Response custom_res;
+		custom_res.WithStatus(res_cgi.getStatus()).WithHttpVersion("HTTP/1.1").setDefaultHeaders();
+		for (std::map<std::string, std::string>::const_iterator it = res_cgi.getHeaders().begin();
+			 it != res_cgi.getHeaders().end();
+			 ++it)
+		{
+			custom_res.WithHeader(it->first, it->second);
+		}
+		std::string body;
+		body.assign((std::istreambuf_iterator<char>(generated_file)), std::istreambuf_iterator<char>());
+		custom_res.WithBody(body).Generate().Send(client_socket);
+		remove(res_cgi.getBodyFile().c_str());
+	}
+	return (1);
 }

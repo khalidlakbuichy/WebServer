@@ -68,9 +68,9 @@ bool map<T1 , T2>::check(const char *str , bool c)
 {
     (void)c;
 
-    if(string(str)[0] != 'D' && !data["methods"].empty())
+    if(string(str)[0] != 'D' && !data["methods_cgi"].empty())
     {
-        std::vector<std::string> met = data["methods"];
+        std::vector<std::string> met = data["methods_cgi"];
         if(std::count(met.begin(), met.end(), str))
             return 1;
     }

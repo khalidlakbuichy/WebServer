@@ -50,7 +50,6 @@ ConfigLoader Parse_Config::default_Server()
     t_map def_loc;
 
     def_loc.insert("uri" , "/");
-    def_loc.insert("methods" , "GET");
     def_loc.insert("root" , "www");
     def_loc.insert("index" , "index.html");
     def_loc.insert("upload" , "uploads");
@@ -210,7 +209,6 @@ void Parse_Config::push_back_data()
     if(data.location.empty())
     {
         loc.insert("uri" , "/");
-        loc.insert("methods" , "GET");
         loc.insert("root" , "www");
         loc.insert("index" , "index.html");
         loc.insert("upload" , "uploads");

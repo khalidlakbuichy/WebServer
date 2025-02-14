@@ -6,7 +6,6 @@
 
 #include <string>
 
-void setNonBlocking(int sock);
 
 unsigned long stringToUnsignedLong(const std::string& str);
 

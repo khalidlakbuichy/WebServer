@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cstdio>
+#include "../types/reqTypes.hpp"
 
 class RequestCgi
 {
@@ -97,5 +98,9 @@ private:
 
 // Main
 void handleCGI(RequestCgi &request, ResponseCgi &response);
+
+// Serving
+RequestCgi setupCgiRequest(HttpRequestData &req, std::string interpreter);
+
 
 #endif

@@ -9,17 +9,6 @@
 #include <ctime>
 
 
-void setNonBlocking(int sock) {
-    int flags = fcntl(sock, F_GETFL, 0);
-    if (flags == -1) {
-        std::cerr << "fcntl F_GETFL failed" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1) {
-        std::cerr << "fcntl F_SETFL failed" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-}
 
 unsigned long stringToUnsignedLong(const std::string& str)
 {

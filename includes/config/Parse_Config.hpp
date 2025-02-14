@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const string  KEYOFLOCATION[] = {"uri" , "upload"  , "redirect" , "cgi" , "root" , "methods" , "index" , "autoindex"};
+const string  KEYOFLOCATION[] = {"uri" , "upload"  , "redirect" , "cgi" , "root" , "methods" , "index" , "autoindex" , "methods_cgi"};
 
 const string  NAMESOFBLOCKS[] = {"[server]" , "[server.errors]" , "[server.location]"};
 

@@ -8,13 +8,6 @@ Server::Server()
     epfd = epoll_create(1);
 }
 
-void set_nonblocking(int fd) {
-    int flags;
-
-    flags = fcntl(fd, F_GETFL, 0); 
-    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-}
-
 
 void Server::CreatServer(vector<addrinfo *> hosts)
 {
@@ -26,7 +19,7 @@ void Server::CreatServer(vector<addrinfo *> hosts)
         fd = socket(hosts[i]->ai_family, hosts[i]->ai_socktype, hosts[i]->ai_protocol);
         Config.throwConfigError(fd < 0 , strerror(errno)) ;
 
-        set_nonblocking(fd);
+
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)); 
 
         err = bind(fd, hosts[i]->ai_addr, hosts[i]->ai_addrlen);
@@ -76,7 +69,10 @@ void Server::block_request(int fd)
 
     char buffer[4096];
 
-    ssize_t len = recv(fd, buffer, sizeof(buffer), 0);
+
+    ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+    buffer[len] = 0;
+    std::cout << "||" << buffer << "||" << std::endl;
 
     if (len <= 0)
     {
@@ -84,7 +80,6 @@ void Server::block_request(int fd)
         close(fd);
         return;
     }
-    
     if (static_cast<size_t>(len) < sizeof(buffer))
         buffer[len] = '\0';
     
@@ -132,8 +127,6 @@ void Server::block_request(int fd)
     }
 }
 
-
-
 void Server::block_respond(int fd)
 {
     std::cout << "\n\n++++++++++++++++++++++++ block Response ++++++++++++++++++++++++\n\n" << std::endl;
@@ -163,17 +156,13 @@ void Server::block_respond(int fd)
         break;
     }
 }
-
-
 void Server::ft_accept(int fd)
 {
     std::cout << "\n\n============================ block connection ============================\n\n" << std::endl;
     fd = accept(fd, NULL, NULL);
-    set_nonblocking(fd);
     serv[fd] = new my_class(fd);
     ADD_Events(fd , EPOLLIN,EPOLL_CTL_ADD);
 }
-
 void Server::ForEachEvents(epoll_event *events, int n_events)
 {
     int fd;
@@ -190,7 +179,6 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
           block_respond(fd);
     }
 }
-
 void Server::CreatMultiplexing()
 {
     epoll_event events[1024];

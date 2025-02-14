@@ -13,9 +13,7 @@ int main(int ac, char **av)
 	{
 		Config.ParseFile(av[1]);
 
-		std::cout << "VALIIIIIIIIIIIIIIIIIID" << std::endl;
 		
-		std::cout << Config("localhost")._body_size << std::endl;
 		server.CreatServer(Config.getHosts());
 		server.CreatMultiplexing();
 	}
