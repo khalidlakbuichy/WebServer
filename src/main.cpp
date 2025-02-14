@@ -14,6 +14,7 @@ int main(int ac, char **av)
 		Config.ParseFile(av[1]);
 
 		
+
 		server.CreatServer(Config.getHosts());
 		server.CreatMultiplexing();
 	}
