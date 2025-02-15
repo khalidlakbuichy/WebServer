@@ -8,7 +8,6 @@ Server::Server()
     epfd = epoll_create(1);
 }
 
-
 void Server::CreatServer(vector<addrinfo *> hosts)
 {
     int option = 1;
@@ -17,22 +16,20 @@ void Server::CreatServer(vector<addrinfo *> hosts)
     for (unsigned long i = 0; i < hosts.size(); i++)
     {
         fd = socket(hosts[i]->ai_family, hosts[i]->ai_socktype, hosts[i]->ai_protocol);
-        Config.throwConfigError(fd < 0 , strerror(errno)) ;
+        Config.throwConfigError(fd < 0, strerror(errno));
 
-
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)); 
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
 
         err = bind(fd, hosts[i]->ai_addr, hosts[i]->ai_addrlen);
-        Config.throwConfigError(err < 0 , strerror(errno)) ;
+        Config.throwConfigError(err < 0, strerror(errno));
 
         err = listen(fd, 1024);
-        Config.throwConfigError(err < 0 , strerror(errno)) ;
+        Config.throwConfigError(err < 0, strerror(errno));
 
         sockfds.push_back(fd);
-        ADD_Events(fd, EPOLLIN ,EPOLL_CTL_ADD);
+        ADD_Events(fd, EPOLLIN, EPOLL_CTL_ADD);
     }
 }
-
 
 bool Server::find(int fd)
 {
@@ -62,13 +59,12 @@ void Server::ChangeMonitor(int fd)
     serv[fd] = new my_class(fd);
 }
 
-
 void Server::block_request(int fd)
 {
-    std::cout << "\n\n-------------------------- block request --------------------------\n\n" << std::endl;
+    std::cout << "\n\n-------------------------- block request --------------------------\n\n"
+              << std::endl;
 
-    char buffer[4096];
-
+    char buffer[16384];
 
     ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
     buffer[len] = 0;
@@ -82,45 +78,41 @@ void Server::block_request(int fd)
     }
     if (static_cast<size_t>(len) < sizeof(buffer))
         buffer[len] = '\0';
-    
+
     int reqParser_res = serv[fd]->req.Parse(string(buffer, len));
-    
+    serv[fd]->resData = serv[fd]->req.getResult();
+
+    if (serv[fd]->resData._client_requesting_continue) // Expect: 100-continue
+    {
+        const char *continue_response = "HTTP/1.1 100 Continue\r\n\r\n";
+        send(fd, continue_response, strlen(continue_response), 0);
+        serv[fd]->resData._client_requesting_continue = 0;
+    }
+
     if (reqParser_res == 1)
     {
-        serv[fd]->resData = serv[fd]->req.getResult();
-        if (serv[fd]->resData._client_requesting_continue) // Expect: 100-continue
-        {
-            Response res;
-            res.WithHttpVersion("HTTP/1.1")
-                .WithStatus(100)
-                .Generate()
-                .Send(fd);
-            serv[fd]->resData._client_requesting_continue = 0;
-            return; 
-        }
-        else
-            ADD_Events(fd, EPOLLOUT, EPOLL_CTL_MOD); // Respond to the request
+        ADD_Events(fd, EPOLLOUT, EPOLL_CTL_MOD);
     }
-    else if (reqParser_res == 0)    // Continue
+    else if (reqParser_res == 0) // Continue
     {
         // ======>> wa9ila khass tkoun continue HNA
     }
-    else if (reqParser_res == -1)   // Bad Request
+    else if (reqParser_res == -1) // Bad Request
     {
         Response::BadRequest(fd, serv[fd]->resData);
         close(fd);
     }
-    else if (reqParser_res == -2)   // Internal Server Error
+    else if (reqParser_res == -2) // Internal Server Error
     {
         Response::InternalServerError(fd, serv[fd]->resData);
         close(fd);
     }
-    else if (reqParser_res == -3)   // Unsupported Feature
+    else if (reqParser_res == -3) // Unsupported Feature
     {
         Response::NotImplemented(fd, serv[fd]->resData);
         close(fd);
     }
-    else if (reqParser_res == -4)   // Payload too large
+    else if (reqParser_res == -4) // Payload too large
     {
         Response::Http413(fd);
         close(fd);
@@ -129,7 +121,8 @@ void Server::block_request(int fd)
 
 void Server::block_respond(int fd)
 {
-    std::cout << "\n\n++++++++++++++++++++++++ block Response ++++++++++++++++++++++++\n\n" << std::endl;
+    std::cout << "\n\n++++++++++++++++++++++++ block Response ++++++++++++++++++++++++\n\n"
+              << std::endl;
 
     Method::Type method = serv[fd]->resData._method;
     switch (method)
@@ -158,10 +151,11 @@ void Server::block_respond(int fd)
 }
 void Server::ft_accept(int fd)
 {
-    std::cout << "\n\n============================ block connection ============================\n\n" << std::endl;
+    std::cout << "\n\n============================ block connection ============================\n\n"
+              << std::endl;
     fd = accept(fd, NULL, NULL);
     serv[fd] = new my_class(fd);
-    ADD_Events(fd , EPOLLIN,EPOLL_CTL_ADD);
+    ADD_Events(fd, EPOLLIN, EPOLL_CTL_ADD);
 }
 void Server::ForEachEvents(epoll_event *events, int n_events)
 {
@@ -176,7 +170,7 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
         else if (events[i].events & EPOLLIN)
             block_request(fd);
         else if (events[i].events & EPOLLOUT)
-          block_respond(fd);
+            block_respond(fd);
     }
 }
 void Server::CreatMultiplexing()

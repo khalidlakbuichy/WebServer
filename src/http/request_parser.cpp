@@ -48,7 +48,7 @@ int RequestParser::Parse(std::string request)
 
 	while (current != end)
 	{
-		
+
 		switch (this->_res._state)
 		{
 		case PARSE::STATE_REQUEST_METHOD_START:
@@ -360,7 +360,9 @@ int RequestParser::Parse(std::string request)
 		{
 			_res._config_res = Config(_res._headers["host"].data());
 			_res._location_res = _res._config_res(_res._uri.host.data());
-			
+
+			if (this->_res._client_requesting_continue)
+				this->_res._client_requesting_continue = 0;
 
 			// ConfigLoader ConfigData;
 			// Syntax Check
@@ -376,7 +378,7 @@ int RequestParser::Parse(std::string request)
 				return (this->_res._Error_msg = "Invalid Headers : Host is missing", -1);
 			else
 			{
-				std::string	Host = this->_res._headers["host"];
+				std::string Host = this->_res._headers["host"];
 				std::string Hostname = Host.substr(0, Host.find(':'));
 				std::string Port = Host.substr(Host.find(':') + 1) == "" ? "80" : Host.substr(Host.find(':') + 1);
 
@@ -393,6 +395,7 @@ int RequestParser::Parse(std::string request)
 				else if (this->_res._headers["connection"] == "keep-alive")
 					this->_res._connection_should_close = 0;
 			}
+
 			if (this->_version_tmp == "1.0")
 				this->_res._connection_should_close = 1;
 
@@ -402,11 +405,20 @@ int RequestParser::Parse(std::string request)
 				this->_res._body_type = PARSE::CONTENT_LENGTH;
 
 				this->_res._body_length = stringToUnsignedLong(this->_res._headers["content-length"]);
-				
+
 				// TODO: change to number later.  TODO: is fixed
-				std::cout << _res._body_length << "  " << _res._config_res._body_size << std::endl;
 				if (_res._body_length <= 0 || (ssize_t)_res._body_length > _res._config_res._body_size)
 					return (_res._Error_msg = "Invalid Content-Length", -4);
+				if (_res._body_length >= 10)
+				{
+					std::cout << "reachs once" << std::endl;
+					this->_res._client_requesting_continue = 1;
+				}
+				else
+				{
+					std::cout << "reeeeee" << std::endl;
+					this->_res._client_requesting_continue = 0;
+				}
 			}
 			else if (this->_res._headers.find("transfer-encoding") != this->_res._headers.end())
 			{
@@ -431,7 +443,6 @@ int RequestParser::Parse(std::string request)
 						return (this->_res._Error_msg = "Invalid Content-Type : Missing Boundary", -1);
 				}
 			}
-
 			// Support for 100-continue
 			if (this->_res._headers.find("expect") != this->_res._headers.end())
 			{

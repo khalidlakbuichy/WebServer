@@ -50,7 +50,7 @@ public:
 public:
     int check()
     {
-    if((time(NULL) - t ) >= 20)
+    if((time(NULL) - t ) >= 2000000000000)
         close(fd);
     return 1;
     }
