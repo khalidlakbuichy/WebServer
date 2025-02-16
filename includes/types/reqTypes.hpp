@@ -109,12 +109,6 @@ struct HttpRequestData
 	int 								_connection_should_close;
 	int									_client_requesting_continue;
 	std::string							_tmp_file_name;
-
-
-	// CGI
-	int 								_status;
-    std::map<std::string, std::string> 	_headers_cgi;
-    std::string							_bodyFile; //tmp path that needs to be served.
 };
 
 // ConfigFileResutl res;

@@ -382,7 +382,7 @@ RequestCgi setupCgiRequest(HttpRequestData &req, std::string interpreter) {
         req._content_type,                                 // CONTENT_LENGTH (for POST)
         req._headers["content-length"],                    // CONTENT_TYPE (for POST)
         req._tmp_file_name.empty() ? "./www/tmp/tmp" : req._tmp_file_name, // Body file path
-        req._headers.find("Cookie") != req._headers.end() ? req._headers["Cookie"] : "", // Cookies
+        req._headers.find("cookie") != req._headers.end() ? req._headers["cookie"] : "", // Cookies
         "",                                              // Path info (unused here)
         interpreter                                      // Interpreter path
     );

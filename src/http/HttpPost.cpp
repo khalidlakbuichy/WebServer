@@ -49,11 +49,10 @@ static std::string FieldsMapStringify(std::map<std::string, std::string> &Fields
 
 int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 {
-	// Field/Value pairs
+	// int ChunkSize = 16384;
 	std::string field_name;
 	std::string field_value;
 	std::ofstream curr_file;
-	std::map<std::string, std::string> Fields;
 
 	std::string Upload_dir = req._location_res["upload"];
 	std::string Root = req._location_res["root"];
@@ -81,7 +80,6 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 			return (req._Error_msg = "Invalid Line Ending", 0);
 
 		line += "\n";
-
 		switch (state)
 		{
 		case PARSE::STATE_BOUNDARY:
@@ -154,7 +152,7 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 		{
 			field_value = line.substr(0, line.length() - 2); // remove \r\n
 
-			Fields[field_name] = field_value;
+			req._Fields[field_name] = field_value;
 			state = PARSE::STATE_BOUNDARY;
 			break;
 		}
@@ -162,7 +160,7 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 		{
 			if (line.find("Content-Type:") != std::string::npos)
 			{
-				Fields[field_name] = field_value;
+				req._Fields[field_name] = field_value;
 				state = PARSE::STATE_CONTENT_EMPTY_LINE_AFTER_TYPE;
 				break;
 			}
@@ -224,7 +222,7 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 		}
 	}
 
-	std::string data = FieldsMapStringify(Fields);
+	std::string data = FieldsMapStringify(req._Fields);
 	Response res;
 	res.WithHttpVersion("HTTP/1.1")
 		.WithStatus(201)
@@ -260,6 +258,6 @@ int Response::Post(int client_socket, HttpRequestData &req)
 		BadRequest(client_socket, req);
 	else if (res < 0)
 		InternalServerError(client_socket, req);
-	remove(req._tmp_file_name.c_str());
+	// remove(req._tmp_file_name.c_str());
 	return (1);
 }
