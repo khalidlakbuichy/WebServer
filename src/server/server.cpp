@@ -28,6 +28,7 @@ void Server::CreatServer(vector<addrinfo *> hosts)
 
         sockfds.push_back(fd);
         ADD_Events(fd, EPOLLIN, EPOLL_CTL_ADD);
+        freeaddrinfo(hosts[i]);
     }
 }
 
@@ -67,7 +68,9 @@ void Server::block_request(int fd)
     char buffer[16384];
 
     ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+    std::cout << len << std::endl;
     buffer[len] = 0;
+
     std::cout << "||" << buffer << "||" << std::endl;
 
     if (len <= 0)
@@ -85,7 +88,7 @@ void Server::block_request(int fd)
     if (serv[fd]->resData._client_requesting_continue) // Expect: 100-continue
     {
         const char *continue_response = "HTTP/1.1 100 Continue\r\n\r\n";
-        send(fd, continue_response, strlen(continue_response), 0);
+        send(fd, continue_response, strlen(continue_response), MSG_DONTWAIT);
         serv[fd]->resData._client_requesting_continue = 0;
     }
 

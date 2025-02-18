@@ -53,7 +53,7 @@ public:
     void ft_getaddrinfo();
     void  throwConfigError(bool expr , const char *str);
     bool check();
-
+    int ft_freeaddrinof();
 public:
     void CheckBlockLocation();
     void CheckBlockErrors();

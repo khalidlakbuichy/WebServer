@@ -4,23 +4,31 @@
 Parse_Config Config;
 
 
+
+void signal_handler(int a)
+{
+	(void)a;
+	throw(std::runtime_error("\nhello world\n"));
+}
+
 int main(int ac, char **av)
 {
 	if (ac > 2)
 		return 1;
+	
+	signal(SIGINT, signal_handler);
+	
 	Server server;
 	try
 	{
-		Config.ParseFile(av[1]);
-
-		
-
+		Config.ParseFile(av[1]);	
 		server.CreatServer(Config.getHosts());
 		server.CreatMultiplexing();
 	}
 	catch(const std::exception& e)
 	{
-		std::cerr << e.what() << '\n';
+		std::cerr << e.what() << std::endl;
+		return 1;
 	}
 	return 0;
 }

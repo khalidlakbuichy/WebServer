@@ -21,6 +21,15 @@ bool Parse_Config::check()
     return(check_host);
 }
 
+
+int Parse_Config::ft_freeaddrinof()
+{
+    for(unsigned int i = 0; i < save_addr.size(); i++)
+        freeaddrinfo(save_addr[i]);
+
+    return 1;
+}
+
 void  Parse_Config::throwConfigError(bool expr , const char *str)
 {
     stringstream ss;
@@ -169,6 +178,7 @@ void Parse_Config::CheckInfoServer()
     }
 }
 
+
 void Parse_Config::getKeyValue(string &line , char set)
 {
     size_t c;
@@ -179,6 +189,7 @@ void Parse_Config::getKeyValue(string &line , char set)
     value = line.substr(c + 1, line.npos);
     strtrim(key , " \t"); strtrim(value , " \t");
 }
+
 
 void Parse_Config::ft_getaddrinfo()
 {
@@ -192,10 +203,10 @@ void Parse_Config::ft_getaddrinfo()
     {
         res = NULL;
         flag = strtol(it[i].c_str() , NULL , 10);
-        throwConfigError(flag < 1024 || flag > 65535 , "the port is numeric and within the valid range (1-65535)");
+        throwConfigError((flag < 1024 || flag > 65535) && ft_freeaddrinof() , "the port is numeric and within the valid range (1-65535)");
 
         flag =  getaddrinfo(host, it[i].data(), NULL, &res);
-        throwConfigError(flag , gai_strerror(flag));
+        throwConfigError(flag && ft_freeaddrinof() , gai_strerror(flag));
         save_addr.push_back(res);
     }
 }
