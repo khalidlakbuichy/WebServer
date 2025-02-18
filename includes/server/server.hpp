@@ -45,10 +45,7 @@ public:
         fd = _fd;
         t = std::time(NULL);
     }
-    ~my_class()
-    {
-        req.~Request();
-    };
+    ~my_class() {};
 
 public:
     int check()
