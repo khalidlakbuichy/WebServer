@@ -212,6 +212,7 @@
               throw new Error('I didnt handle that response code in the client side.')
           })
           .then(data => {
+            console.log(data);
             showToast(`File uploaded successfully: ${data.data.file}`);
           })
           .catch(error => {

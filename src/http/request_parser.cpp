@@ -31,6 +31,13 @@ RequestParser::RequestParser()
 	this->_res._tmp_file_name = "";
 	this->_res._client_requesting_continue = 0;
 	this->_res._Error_msg = "";
+	this->_res._initialized = false;
+	this->_res._curr_field_name = "";
+	this->_res._curr_field_name = "";
+	this->_res._curr_uploaded_file = "";
+	this->_res._fullDir = "";
+	this->_res._curr_tmpfile_pos = 0;
+	this->_res._curr_uploadedFile_pos = 0;
 	// ========================================
 }
 
@@ -409,9 +416,8 @@ int RequestParser::Parse(std::string request)
 				// TODO: change to number later.  TODO: is fixed
 				if (_res._body_length <= 0 || (ssize_t)_res._body_length > _res._config_res._body_size)
 					return (_res._Error_msg = "Invalid Content-Length", -4);
-				if (_res._body_length >= 10)
+				if (_res._body_length >= 10) // TODO, MAKE IT BIGGER
 				{
-					std::cout << "reachs once" << std::endl;
 					this->_res._client_requesting_continue = 1;
 				}
 				else
@@ -518,6 +524,10 @@ int RequestParser::Parse(std::string request)
 			size_t BytesToWrite = std::min(static_cast<size_t>(end - current), this->_res._body_length);
 
 			_tmp_file.write(current, BytesToWrite);
+			// if (_res._is_multipart) //TODO MAAAAY
+			// {
+			// 	std::string Buff = std::string(current, BytesToWrite);
+			// }
 			this->_res._body_length -= BytesToWrite;
 			current += BytesToWrite;
 			if (this->_res._body_length == 0)

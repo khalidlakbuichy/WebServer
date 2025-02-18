@@ -135,8 +135,15 @@ void Server::block_respond(int fd)
     }
     case Method::POST:
     {
-        if (serv[fd]->res.Post(fd, serv[fd]->resData))
+        int res = serv[fd]->res.Post(fd, serv[fd]->resData);
+        if (res == 1)
             ChangeMonitor(fd);
+        else if (res == -1)
+        {
+            Response::InternalServerError(fd, serv[fd]->resData);
+            std::cout << serv[fd]->resData._Error_msg << std::endl;
+            close(fd);
+        }
         break;
     }
     case Method::DELETE:

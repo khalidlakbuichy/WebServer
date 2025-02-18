@@ -21,13 +21,16 @@ private:
 	std::string _Status;
 	std::map<std::string, std::string> _Headers;
 	std::string _Body;
-
 	std::string _Resp;
 
 	// Chunked Serve
 	RESPONSE::ChunkedState _ChunkedState;
 	std::ifstream _file;
 	size_t _fileSize;
+
+	// MultiPart Serve
+	std::ifstream _tmp_file;
+	std::ofstream _uploaded_file;
 
 public:
 	Response();
@@ -66,6 +69,7 @@ public:
 	int ServeFile(int client_socket, std::string resolvedPath, HttpRequestData &req);
 	int ServeCGI(int client_socket, std::string ext, HttpRequestData &req);
 	// Post
+	std::string FieldsMapJsonify(std::map<std::string, std::string> Fields);
 	int ParseMultiPartFormData(HttpRequestData &req, int client_socket);
 	int Post(int client_socket, HttpRequestData &req);
 	// Delete

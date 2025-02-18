@@ -13,7 +13,6 @@ void Response::Http413(int client_socket)
 		.Generate()
 		.Send(client_socket);
 }
-
 void Response::Http201(int client_socket)
 {
 	// Create the response body
@@ -31,11 +30,11 @@ void Response::Http201(int client_socket)
 		.Generate()
 		.Send(client_socket);
 }
-
-static std::string FieldsMapStringify(std::map<std::string, std::string> &Fields)
+std::string Response::FieldsMapJsonify(std::map<std::string, std::string> Fields)
 {
 	std::string data;
 	data += "{";
+
 	for (std::map<std::string, std::string>::iterator it = Fields.begin(); it != Fields.end(); it++)
 	{
 		data += "\"" + it->first + "\": \"" + it->second + "\"";
@@ -49,189 +48,204 @@ static std::string FieldsMapStringify(std::map<std::string, std::string> &Fields
 
 int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 {
-	// int ChunkSize = 16384;
-	std::string field_name;
-	std::string field_value;
-	std::ofstream curr_file;
-
-	std::string Upload_dir = req._location_res["upload"];
-	std::string Root = req._location_res["root"];
-	Root += (Root[Root.length() - 1] == '/' ? "" : "/");
-	Upload_dir += (Upload_dir[Upload_dir.length() - 1] == '/' ? "" : "/");
-
-	std::string fullDir = Root + Upload_dir;
-
-	// if upload dirr is exist
-	if (!isDirectory(fullDir))
-		return (req._Error_msg = "Unacessible upload folder", -1);
-
-	// Open tmp file
-	std::ifstream MultiPartData((req._tmp_file_name).c_str(), std::ios::binary);
-	if (!MultiPartData.is_open())
-		return (req._Error_msg = "Could not open tmp file", -1);
-
-	PARSE::MultiPartFormDataState state = PARSE::STATE_BOUNDARY; // Init.
-
-	// read line by line
-	std::string line;
-	while (std::getline(MultiPartData, line))
+	// TODO : CLOSE FILE ON ERROR
+	// TOOD : LEFTOVER IS A MUST
+	(void)client_socket;
+	if (!req._initialized)
 	{
-		if (line[line.length() - 1] != '\r' && state != PARSE::STATE_CONTENT_FILE_DATA) // exept file data, all lines should end with \r\n
-			return (req._Error_msg = "Invalid Line Ending", 0);
+		std::string Root = req._location_res["root"];
+		// Seting up tmp file
+		if (!_tmp_file.is_open())
+		{
+			_tmp_file.open(req._tmp_file_name.c_str(), std::ios::binary);
+			if (!_tmp_file.is_open())
+				return (req._Error_msg = "Could not open tmp file", -1);
+		}
 
-		line += "\n";
-		switch (state)
+		// Seting up upload dir
+		std::string Upload_dir = req._location_res["upload"];
+		Root += (Root[Root.length() - 1] == '/' ? "" : "/");
+		Upload_dir += (Upload_dir[Upload_dir.length() - 1] == '/' ? "" : "/");
+		req._fullDir = Root + Upload_dir;
+
+		req._initialized = true;
+		req.multipart_state = PARSE::STATE_BOUNDARY;
+		// if upload dirr is exist
+		if (!isDirectory(req._fullDir))
+			return (req._Error_msg = "Unacessible upload folder", -1);
+	}
+
+	int ChunkSize = 16384;
+	char Buffer[ChunkSize];
+	const char *ptr = Buffer;
+	const char *end;
+
+	_tmp_file.clear();
+	_tmp_file.seekg(req._curr_tmpfile_pos);
+	_tmp_file.read(Buffer, ChunkSize);
+
+	std::streamsize bytesRead = _tmp_file.gcount();
+	if (bytesRead <= 0)
+		return (req._Error_msg = "End of file or read error", -1);
+	else if (bytesRead < ChunkSize)
+		Buffer[bytesRead] = '\0';
+
+	end = ptr + bytesRead;
+
+	while (ptr != end)
+	{
+		switch (req.multipart_state)
 		{
 		case PARSE::STATE_BOUNDARY:
 		{
-			if (line == "--" + req._boundary + "\r\n") // fix this.
+			std::string Boundary = "--" + req._boundary + "\r\n";
+			std::string BoundaryEnd = "--" + req._boundary + "--\r\n";
+
+			std::cout << *ptr << std::endl;
+
+			if (memcmp(ptr, Boundary.c_str(), Boundary.length()) == 0)
 			{
-				state = PARSE::STATE_CONTENT_DISPOSITION;
-				break;
+				ptr += (Boundary.length());
+				req.multipart_state = PARSE::STATE_HEADERS;
+			}
+			else if (memcmp(ptr, BoundaryEnd.c_str(), BoundaryEnd.length()) == 0)
+			{
+				ptr += (Boundary.length());
+				_tmp_file.close();
+				remove(req._tmp_file_name.c_str());
+
+				std::string data = FieldsMapJsonify(req._Fields);
+				Response res;
+				res.WithHttpVersion("HTTP/1.1")
+					.WithStatus(201)
+					.setDefaultHeaders()
+					.WithHeader("Content-Type", "application/json")
+					.WithBody("{\"data\": " + data + "}")
+					.Generate()
+					.Send(client_socket);
+				return (1);
 			}
 			else
-				return (req._Error_msg = "Invalid Boundary", 0);
-		}
-		case PARSE::STATE_CONTENT_DISPOSITION:
-		{
-			if (line.find("Content-Disposition: form-data;") == std::string::npos)
-				return (req._Error_msg = "Invalid Content-Disposition", 0);
-
-			if (line.find("name=") != std::string::npos)
-				state = PARSE::STATE_CONTENT_FIELD_NAME;
-			else
-				return (req._Error_msg = "Invalid Field Name", 0);
-		}
-		/* fall through */
-		case PARSE::STATE_CONTENT_FIELD_NAME:
-		{
-			field_name = line.substr(line.find("name=") + 6);
-			field_name = field_name.substr(0, field_name.find("\""));
-
-			if (line.find("filename=") != std::string::npos)
-				state = PARSE::STATE_CONTENT_FILE_NAME;
-			else
 			{
-				state = PARSE::STATE_CONTENT_EMPTY_LINE;
-				break;
+				return (req._Error_msg = "Invalid Boundary", -1);
 			}
-		}
-		/* fall through */
-		case PARSE::STATE_CONTENT_FILE_NAME: // Field value is a file
-		{
-			field_value = line.substr(line.find("filename=") + 10);
-			field_value = field_value.substr(0, field_value.find("\""));
-
-			// Check if file name is empty
-			if (field_value.empty())
-				return (req._Error_msg = "Invalid File Name", 0);
-
-			// If file exists
-			std::ifstream curr_file_check((fullDir + field_value).c_str(), std::ios::in);
-			if (curr_file_check.is_open())
-				return (req._Error_msg = "File already exists", 0);
-
-			// Open file
-			curr_file.open((fullDir + field_value).c_str(), std::ios::binary);
-			if (!curr_file.is_open())
-				return (req._Error_msg = "Could not open file", -1);
-			state = PARSE::STATE_CONTENT_TYPE;
 			break;
 		}
-		case PARSE::STATE_CONTENT_EMPTY_LINE:
+		case PARSE::STATE_HEADERS:
 		{
-			if (line == "\r\n")
+			std::string should_find = "Content-Disposition: form-data;";
+
+			if (memcmp(ptr, should_find.c_str(), should_find.length()) == 0)
+				ptr += should_find.length();
+			else
+				return (req._Error_msg = "Invalid Content-Disposition", -1);
+
+			if (memcmp(ptr, " name=", 6) == 0)
 			{
-				state = PARSE::STATE_CONTENT_FIELD_VALUE;
-				break;
+				ptr += 6;
+				std::string rest = std::string(++ptr);
+				req._curr_field_name = rest.substr(0, rest.find("\""));
+				ptr += req._curr_field_name.length() + 1;
 			}
 			else
-				return (req._Error_msg = "Invalid Empty Line", 0);
-		}
-		case PARSE::STATE_CONTENT_FIELD_VALUE:
-		{
-			field_value = line.substr(0, line.length() - 2); // remove \r\n
+				return (req._Error_msg = "Invalid Field Name", -1);
+			if (memcmp(ptr, "; filename=", 11) == 0)
+			{
+				req.multipart_state = PARSE::STATE_FILE_DATA_SETUP;
+				ptr += 12; // plus 1 for "
+				std::string rest = std::string(ptr);
+				req._curr_uploaded_file = rest.substr(0, rest.find("\""));
 
-			req._Fields[field_name] = field_value;
-			state = PARSE::STATE_BOUNDARY;
+				req._Fields[req._curr_field_name] = req._curr_uploaded_file;
+
+				ptr += req._curr_uploaded_file.length() + 1;
+			}
+			else
+				req.multipart_state = PARSE::STATE_FIELD_VALUE;
+
+			if (memcmp(ptr, "\r\n", 2) == 0)
+				ptr += 2;
+			else
+				return (req._Error_msg = "invalid end of line.", -1);
 			break;
 		}
-		case PARSE::STATE_CONTENT_TYPE:
+		case PARSE::STATE_FIELD_VALUE:
 		{
-			if (line.find("Content-Type:") != std::string::npos)
-			{
-				req._Fields[field_name] = field_value;
-				state = PARSE::STATE_CONTENT_EMPTY_LINE_AFTER_TYPE;
-				break;
-			}
+			if (memcmp(ptr, "\r\n", 2) == 0)
+				ptr += 2;
 			else
-				return (req._Error_msg = "Invalid Content-Type", 0);
+				return (req._Error_msg = "invalid line break.", -1);
+
+			std::string rest = std::string(ptr);
+			req._curr_field_value = rest.substr(0, rest.find("\r\n"));
+
+			// Add the field to the fields map
+			req._Fields[req._curr_field_name] = req._curr_field_value;
+			ptr += req._curr_field_value.length() + 2;
+
+			req._curr_field_name.clear();
+			req._curr_field_value.clear();
+
+			req.multipart_state = PARSE::STATE_BOUNDARY;
+			break;
 		}
-		case PARSE::STATE_CONTENT_EMPTY_LINE_AFTER_TYPE:
+		case PARSE::STATE_FILE_DATA_SETUP:
 		{
-			if (line == "\r\n")
+			if (memcmp(ptr, "Content-Type: ", 14) == 0)
 			{
-				state = PARSE::STATE_CONTENT_FILE_DATA;
-				break;
+				ptr += 14;
+				std::string rest = std::string(ptr);
+				req._curr_content_type = rest.substr(0, rest.find("\r\n"));
+				ptr += req._curr_content_type.length() + 2;
 			}
 			else
-				return (req._Error_msg = "Invalid Empty Line After Type", 0);
+				return (req._Error_msg = "Invalid Content-Type", -1);
+
+			if (memcmp(ptr, "\r\n", 2) == 0)
+				ptr += 2;
+			else
+				return (req._Error_msg = "invalid end of line.", -1);
+
+			std::string full_path = req._fullDir + req._curr_uploaded_file;
+			_uploaded_file.open(full_path.c_str(), std::ios::binary);
+			if (!_uploaded_file.is_open())
+				return (req._Error_msg = "Could not open uploaded file", -1);
+			req.multipart_state = PARSE::STATE_FILE_DATA;
+			break;
 		}
-		case PARSE::STATE_CONTENT_FILE_DATA:
+		case PARSE::STATE_FILE_DATA:
 		{
-			if (line == "--" + req._boundary + "--\r\n")
+			std::vector<char> rest(ptr, end);
+			std::string boundary = "\r\n--" + req._boundary;
+
+			std::vector<char>::iterator boundary_pos = std::search(
+				rest.begin(), rest.end(),
+				boundary.begin(), boundary.end());
+
+			if (boundary_pos != rest.end())
 			{
-				curr_file.close();
-				state = PARSE::STATE_BOUNDARY_END;
-				break;
-			}
-			else if (line == "--" + req._boundary + "\r\n")
-			{
-				curr_file.close();
-				state = PARSE::STATE_CONTENT_DISPOSITION;
-				break;
+				// Write the data before the boundary to the file
+				_uploaded_file.write(&rest[0], boundary_pos - rest.begin());
+				_uploaded_file.close();
+
+				// Move the pointer to the end of the boundary
+				ptr += (boundary_pos - rest.begin()) + 2; // +2 for \r\n
+				req.multipart_state = PARSE::STATE_BOUNDARY;
 			}
 			else
 			{
-				curr_file << line; // remove \r\n
-				break;
+				_uploaded_file.write(&rest[0], rest.size());
+				ptr += rest.size();
 			}
-		}
-		case PARSE::STATE_EMPTY_LINE_BEFORE_BOUNDARY_END:
-		{
-			if (line == "\r\n")
-			{
-				state = PARSE::STATE_BOUNDARY_END;
-				break;
-			}
-			else
-				return (req._Error_msg = "Invalid Empty Line Before Boundary End", 0);
-		}
-		case PARSE::STATE_BOUNDARY_END:
-		{
-			if (line == "--\r\n")
-			{
-				state = PARSE::STATE_BOUNDARY;
-				break;
-			}
-			else
-				return (req._Error_msg = "Invalid Boundary End", 0);
+			break;
 		}
 		default:
 			break;
 		}
 	}
 
-	std::string data = FieldsMapStringify(req._Fields);
-	Response res;
-	res.WithHttpVersion("HTTP/1.1")
-		.WithStatus(201)
-		.setDefaultHeaders()
-		.WithHeader("Content-Type", "application/json")
-		.WithBody("{\"data\": " + data + "}")
-		.Generate()
-		.Send(client_socket);
-	return (1);
+	req._curr_tmpfile_pos += (ptr - Buffer);
+	return (0);
 }
 
 int Response::Post(int client_socket, HttpRequestData &req)
@@ -252,12 +266,5 @@ int Response::Post(int client_socket, HttpRequestData &req)
 		return (1);
 	}
 
-	int res = ParseMultiPartFormData(req, client_socket);
-
-	if (res == 0)
-		BadRequest(client_socket, req);
-	else if (res < 0)
-		InternalServerError(client_socket, req);
-	// remove(req._tmp_file_name.c_str());
-	return (1);
+	return (ParseMultiPartFormData(req, client_socket));
 }

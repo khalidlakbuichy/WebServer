@@ -28,16 +28,10 @@ namespace PARSE
 	enum MultiPartFormDataState
 	{
 		STATE_BOUNDARY,
-		STATE_CONTENT_DISPOSITION,
-		STATE_CONTENT_FIELD_NAME,
-		STATE_CONTENT_EMPTY_LINE,
-		STATE_CONTENT_FIELD_VALUE,
-		STATE_CONTENT_FILE_NAME,
-		STATE_CONTENT_TYPE,
-		STATE_CONTENT_EMPTY_LINE_AFTER_TYPE,
-		STATE_CONTENT_FILE_DATA,
-		STATE_EMPTY_LINE_BEFORE_BOUNDARY_END,
-		STATE_BOUNDARY_END,
+		STATE_HEADERS,
+		STATE_FILE_DATA_SETUP,
+		STATE_FILE_DATA,
+		STATE_FIELD_VALUE,
 	};
 
 	enum state
@@ -87,28 +81,39 @@ namespace PARSE
 
 struct HttpRequestData
 {
-	PARSE::state						_state;
-	std::string							_Error_msg;
-	Method::Type						_method;
-	Uri									_uri; // cgi_script_name = _uri.host || 
-	Version::Type						_version;
-	std::map<std::string, std::string>	_headers;
-	PARSE::body_type					_body_type;
-	unsigned long						_body_length;
-	unsigned long						_chunked_size;
-	std::string							_content_type;
-	std::string							_boundary;
-	std::map<std::string, std::string>	_Fields;
+	PARSE::state _state;
+	std::string _Error_msg;
+	Method::Type _method;
+	Uri _uri; // cgi_script_name = _uri.host ||
+	Version::Type _version;
+	std::map<std::string, std::string> _headers;
+	PARSE::body_type _body_type;
+	unsigned long _body_length;
+	unsigned long _chunked_size;
+	std::string _content_type;
+	std::string _boundary;
+	std::map<std::string, std::string> _Fields;
 
 	// Config File Data
-	ConfigLoader					_config_res;
-	t_map								_location_res;
+	ConfigLoader _config_res;
+	t_map _location_res;
 
 	// Flags
-	int									_is_multipart;
-	int 								_connection_should_close;
-	int									_client_requesting_continue;
-	std::string							_tmp_file_name;
+	int _is_multipart;
+	int _connection_should_close;
+	int _client_requesting_continue;
+	std::string _tmp_file_name;
+
+	// MultiPart
+	PARSE::MultiPartFormDataState multipart_state;
+	bool _initialized; // init ti false
+	std::string _curr_field_name;
+	std::string _curr_field_value;
+	std::string _curr_content_type;
+	std::string _curr_uploaded_file;
+	std::string _fullDir;
+	std::streampos _curr_tmpfile_pos; // init to 0
+	std::streampos _curr_uploadedFile_pos;
 };
 
 // ConfigFileResutl res;
