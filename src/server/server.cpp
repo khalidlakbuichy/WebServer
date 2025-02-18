@@ -88,7 +88,7 @@ void Server::block_request(int fd)
     if (serv[fd]->resData._client_requesting_continue) // Expect: 100-continue
     {
         const char *continue_response = "HTTP/1.1 100 Continue\r\n\r\n";
-        send(fd, continue_response, strlen(continue_response), MSG_DONTWAIT);
+        send(fd, continue_response, strlen(continue_response), MSG_NOSIGNAL | MSG_DONTWAIT);
         serv[fd]->resData._client_requesting_continue = 0;
     }
 
