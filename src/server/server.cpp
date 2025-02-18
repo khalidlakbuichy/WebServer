@@ -48,7 +48,7 @@ void Server::ADD_Events(int _fd, EPOLL_EVENTS ev, int op)
 
     epoll_event event;
 
-    event.events = ev;
+    event.events = ev | EPOLLERR | EPOLLHUP;
     event.data.fd = _fd;
     epoll_ctl(epfd, op, _fd, &event);
 }
@@ -181,6 +181,8 @@ void Server::ForEachEvents(epoll_event *events, int n_events)
             block_request(fd);
         else if (events[i].events & EPOLLOUT)
             block_respond(fd);
+        else
+            close(fd);
     }
 }
 void Server::CreatMultiplexing()
