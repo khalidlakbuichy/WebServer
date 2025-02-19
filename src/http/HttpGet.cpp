@@ -154,6 +154,7 @@ int Response::ServeDirectory(int client_socket, std::string DirPath, HttpRequest
 }
 int Response::ServeCGI(int client_socket, std::string ext, HttpRequestData &req)
 {
+	std::cout << "CGI" << std::endl;
 	RequestCgi req_cgi = setupCgiRequest(req, ext);
 	ResponseCgi res_cgi;
 	handleCGI(req_cgi, res_cgi);

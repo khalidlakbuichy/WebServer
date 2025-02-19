@@ -374,17 +374,19 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
 
 // =========================== Serving: setupCgiRequest ===========================
 // This helper function builds a RequestCgi object based on an HttpRequestData structure.
-RequestCgi setupCgiRequest(HttpRequestData &req, std::string interpreter) {
+RequestCgi setupCgiRequest(HttpRequestData &req, std::string interpreter)
+{
+    (void)interpreter;
     RequestCgi req_cgi(
-        Method::toString(req._method),                    // Request method (e.g., "GET", "POST")
-        req._location_res["root"] + req._uri.host,         // Script file path
-        req._uri.query,                                    // Query string
-        req._content_type,                                 // CONTENT_LENGTH (for POST)
-        req._headers["content-length"],                    // CONTENT_TYPE (for POST)
-        req._tmp_file_name.empty() ? "./www/tmp/tmp" : req._tmp_file_name, // Body file path
+        Method::toString(req._method),             // Request method (e.g., "GET", "POST")
+        req._location_res["root"] + req._uri.host, // Script file path
+        req._uri.query,                            // Query string
+        req._headers["content-length"],            // CONTENT_LENGTH (for POST)
+        req._headers["content-type"],              // CONTENT_TYPE (for POST)
+        req._tmp_file_name.empty() ? "./www/tmp/tmp" : req._tmp_file_name,               // Body file path
         req._headers.find("cookie") != req._headers.end() ? req._headers["cookie"] : "", // Cookies
-        "",                                              // Path info (unused here)
-        interpreter                                      // Interpreter path
+        "",                                                                              // Path info (unused here)
+        "/usr/bin/php-cgi"                                                                      // Interpreter path
     );
     return req_cgi;
 }
