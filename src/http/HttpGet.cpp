@@ -11,11 +11,9 @@ void Response::Http301(int client_socket, std::string redirection_link)
 		.Generate()
 		.Send(client_socket);
 }
+
 bool Response::OpenFile(const std::string &resolvedPath, HttpRequestData &req, int client_socket)
 {
-	(void)client_socket;
-	(void)req;
-
 	this->_file.open(resolvedPath.c_str(), std::ios::in | std::ios::binary);
 	if (!this->_file.is_open())
 	{

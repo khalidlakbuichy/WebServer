@@ -48,14 +48,12 @@ void Response::BadRequest(int client_socket, HttpRequestData &req)
 {
 	std::ifstream DefFile;
 	std::ifstream file(req._config_res["400"].c_str());
+	std::string LastGoBody = "<!DOCTYPE html>\n<html>\n<head>\n<title>400 Bad Request</title>\n</head>\n<body>\n<h1>Bad Request</h1>\n<p>Your browser sent a request that this server could not understand.</p>\n</body>\n</html>\n";
 
 	std::string body;
-	
+
 	if (!file.is_open())
-	{
-		DefFile.open("www/errors/400.html");
-		body.assign((std::istreambuf_iterator<char>(DefFile)), std::istreambuf_iterator<char>());
-	}
+		body = LastGoBody;
 	else
 		body.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
@@ -70,16 +68,14 @@ void Response::BadRequest(int client_socket, HttpRequestData &req)
 }
 void Response::NotFound(int client_socket, HttpRequestData &req)
 {
-	std::ifstream DefFile;
-	std::ifstream file(req._config_res["404"].c_str());
-	
+	std::ifstream file(req._config_res["404"].c_str()); 
+	std::cout << req._config_res["404"].c_str() << std::endl; //TODO HADI katjib 400.html !!
+	std::string LastGoBody = "<!DOCTYPE html>\n<html>\n<head>\n<title>404 Not Found</title>\n</head>\n<body>\n<h1>Not Found</h1>\n<p>The requested URL was not found on this server.</p>\n</body>\n</html>\n";
 	std::string body;
 	
+
 	if (!file.is_open())
-	{
-		DefFile.open("www/errors/404.html");
-		body.assign((std::istreambuf_iterator<char>(DefFile)), std::istreambuf_iterator<char>());
-	}
+		body = LastGoBody;
 	else
 		body.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
@@ -94,16 +90,12 @@ void Response::NotFound(int client_socket, HttpRequestData &req)
 }
 void Response::MethodNotAllowed(int client_socket, HttpRequestData &req)
 {
-	std::ifstream DefFile;
 	std::ifstream file(req._config_res["405"].c_str());
-
+	std::string LastGoBody = "<!DOCTYPE html>\n<html>\n<head>\n<title>405 Method Not Allowed</title>\n</head>\n<body>\n<h1>Method Not Allowed</h1>\n<p>The method is not allowed for the requested URL.</p>\n</body>\n</html>\n";
 	std::string body;
-	
+
 	if (!file.is_open())
-	{
-		DefFile.open("www/errors/405.html");
-		body.assign((std::istreambuf_iterator<char>(DefFile)), std::istreambuf_iterator<char>());
-	}
+		body = LastGoBody;
 	else
 		body.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
@@ -118,15 +110,12 @@ void Response::MethodNotAllowed(int client_socket, HttpRequestData &req)
 }
 void Response::InternalServerError(int client_socket, HttpRequestData &req)
 {
-	std::ifstream DefFile;
 	std::ifstream file(req._config_res["500"].c_str());
 	std::string body;
-	
+	std::string LastGoBody = "<!DOCTYPE html>\n<html>\n<head>\n<title>500 Internal Server Error</title>\n</head>\n<body>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error or misconfiguration and was unable to complete your request.</p>\n</body>\n</html>\n";
+
 	if (!file.is_open())
-	{
-		DefFile.open("www/errors/500.html");
-		body.assign((std::istreambuf_iterator<char>(DefFile)), std::istreambuf_iterator<char>());
-	}
+		body = LastGoBody;
 	else
 		body.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
@@ -141,16 +130,12 @@ void Response::InternalServerError(int client_socket, HttpRequestData &req)
 }
 void Response::NotImplemented(int client_socket, HttpRequestData &req)
 {
-	std::ifstream DefFile;
 	std::ifstream file(req._config_res["501"].c_str());
-
 	std::string body;
-	
+	std::string LastGoBody = "<!DOCTYPE html>\n<html>\n<head>\n<title>501 Not Implemented</title>\n</head>\n<body>\n<h1>Not Implemented</h1>\n<p>The server does not support the action requested by the browser.</p>\n</body>\n</html>\n";
+
 	if (!file.is_open())
-	{
-		DefFile.open("www/errors/501.html");
-		body.assign((std::istreambuf_iterator<char>(DefFile)), std::istreambuf_iterator<char>());
-	}
+		body = LastGoBody;
 	else
 		body.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
@@ -212,7 +197,6 @@ int Response::Send(int client_socket)
 	ssize_t sent = send(client_socket, this->_Resp.c_str(), this->_Resp.size(), MSG_NOSIGNAL | MSG_DONTWAIT);
 	if (sent == -1)
 		std::cout << "error sending." << std::endl;
-
 	Clear();
 	return 0;
 }
