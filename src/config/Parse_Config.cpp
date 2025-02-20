@@ -229,7 +229,7 @@ void Parse_Config::push_back_data()
 
     data.server.insert("host" , "127.0.0.1");
     data.server.insert("port" , "8080");
-    data.error.insert("404" , "www/errors/400.html");
+    data.error.insert("404" , "www/errors/404.html");
     if(!data.server.find("body_size"))
         data._body_size = 20048;
 
