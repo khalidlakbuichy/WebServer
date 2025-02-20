@@ -68,7 +68,7 @@ ConfigLoader Parse_Config::default_Server()
 
     def.server.insert("host" , "127.0.0.3");
     def.server.insert("port" , "8080");
-    def.error.insert("404" , "www/errors/400.html");
+    def.error.insert("404" , "www/errors/404.html");
     def._body_size = 20048;
     
     return def;

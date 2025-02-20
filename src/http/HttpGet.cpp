@@ -154,7 +154,6 @@ int Response::ServeDirectory(int client_socket, std::string DirPath, HttpRequest
 }
 int Response::ServeCGI(int client_socket, std::string ext, HttpRequestData &req)
 {
-	std::cout << "CGI" << std::endl;
 	RequestCgi req_cgi = setupCgiRequest(req, ext);
 	ResponseCgi res_cgi;
 	handleCGI(req_cgi, res_cgi);
@@ -162,7 +161,6 @@ int Response::ServeCGI(int client_socket, std::string ext, HttpRequestData &req)
 
 	if (res_cgi.getStatus() > 500) // TODO: I WILL DETAIL THE 5.. RES LATER
 	{
-		std::cout << "bec of here" << std::endl;
 		return (InternalServerError(client_socket, req), 1);
 	}
 	else

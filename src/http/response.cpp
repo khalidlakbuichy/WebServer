@@ -211,7 +211,7 @@ int Response::Send(int client_socket)
 {
 	ssize_t sent = send(client_socket, this->_Resp.c_str(), this->_Resp.size(), MSG_NOSIGNAL | MSG_DONTWAIT);
 	if (sent == -1)
-		std::cout << "error sending." << std::endl;
+		return 1;
 
 	Clear();
 	return 0;

@@ -17,10 +17,8 @@ std::string ConfigLoader::operator[](const char *str)
     if(server.find(str))
         return(server[str]);
     if(!error.find(str))
-    {
-        std::cout << "return defatul page" << std::endl;
         return(string("www/errors/default.html"));
-    }
+
     return(error[str]);
 }
 

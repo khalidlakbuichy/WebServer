@@ -8,7 +8,7 @@ Parse_Config Config;
 void signal_handler(int a)
 {
 	(void)a;
-	throw(std::runtime_error("\nhello world\n"));
+	throw(std::runtime_error("\nbye bye!"));
 }
 
 int main(int ac, char **av)
