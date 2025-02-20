@@ -28,6 +28,17 @@ void Server::CreatServer(vector<addrinfo *> hosts)
 
         sockfds.push_back(fd);
         ADD_Events(fd, EPOLLIN, EPOLL_CTL_ADD);
+
+
+        {
+        struct  sockaddr_in *ipv4;
+        char local_ip[16];
+    
+        ipv4 = (struct sockaddr_in *)hosts[i]->ai_addr;
+        inet_ntop(AF_INET,&(ipv4->sin_addr) , local_ip, sizeof(local_ip));
+        std::cout << "Server is listening on " <<  local_ip << ":" <<   ntohs(ipv4->sin_port)  << "..." << std::endl;
+        }
+
         freeaddrinfo(hosts[i]);
     }
 }
@@ -40,6 +51,13 @@ bool Server::find(int fd)
 
 Server::~Server()
 {
+    std::map<int, my_class *>::iterator it = serv.begin();
+
+    while(it != serv.end())
+    {
+        delete it->second;
+        it++;
+    }
     close(epfd);
 };
 
@@ -62,20 +80,15 @@ void Server::ChangeMonitor(int fd)
 
 void Server::block_request(int fd)
 {
-    std::cout << "\n\n-------------------------- block request --------------------------\n\n"
-              << std::endl;
 
     char buffer[16384];
 
     ssize_t len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
-    std::cout << len << std::endl;
     buffer[len] = 0;
 
-    std::cout << "||" << buffer << "||" << std::endl;
 
     if (len <= 0)
     {
-        std::cout << "Connection closed" << std::endl;
         close(fd);
         return;
     }
@@ -124,8 +137,6 @@ void Server::block_request(int fd)
 
 void Server::block_respond(int fd)
 {
-    std::cout << "\n\n++++++++++++++++++++++++ block Response ++++++++++++++++++++++++\n\n"
-              << std::endl;
 
     Method::Type method = serv[fd]->resData._method;
     switch (method)
@@ -145,7 +156,6 @@ void Server::block_respond(int fd)
         {
             remove(serv[fd]->resData._tmp_file_name.c_str());
             Response::InternalServerError(fd, serv[fd]->resData);
-            std::cout << serv[fd]->resData._Error_msg << std::endl;
             close(fd);
         }
         break;
@@ -162,8 +172,6 @@ void Server::block_respond(int fd)
 }
 void Server::ft_accept(int fd)
 {
-    std::cout << "\n\n============================ block connection ============================\n\n"
-              << std::endl;
     fd = accept(fd, NULL, NULL);
     serv[fd] = new my_class(fd);
     ADD_Events(fd, EPOLLIN, EPOLL_CTL_ADD);

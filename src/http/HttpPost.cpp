@@ -99,7 +99,6 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 			std::string Boundary = "--" + req._boundary + "\r\n";
 			std::string BoundaryEnd = "--" + req._boundary + "--\r\n";
 
-			std::cout << *ptr << std::endl;
 
 			if (memcmp(ptr, Boundary.c_str(), Boundary.length()) == 0)
 			{
