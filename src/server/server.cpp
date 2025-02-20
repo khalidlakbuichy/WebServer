@@ -143,6 +143,7 @@ void Server::block_respond(int fd)
             ChangeMonitor(fd);
         else if (res == -1)
         {
+            remove(serv[fd]->resData._tmp_file_name.c_str());
             Response::InternalServerError(fd, serv[fd]->resData);
             std::cout << serv[fd]->resData._Error_msg << std::endl;
             close(fd);

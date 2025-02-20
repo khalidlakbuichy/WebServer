@@ -36,7 +36,7 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 	std::string ext = (resolvedPath.find_last_of('.') != std::string::npos) ? resolvedPath.substr(resolvedPath.find_last_of('.'))
 																			: ""; // [ ".php" || ""]
 	if (req._location_res.find("cgi") && !req._location_res[ext.data()].empty())
-		return (ServeCGI(client_socket, req._location_res[ext.data()], req));
+		return (ServeCGI(client_socket, ext, req));
 	// *********
 
 	// If GET method supported.
@@ -152,15 +152,13 @@ int Response::ServeDirectory(int client_socket, std::string DirPath, HttpRequest
 }
 int Response::ServeCGI(int client_socket, std::string ext, HttpRequestData &req)
 {
-	std::cout << "CGI" << std::endl;
-	RequestCgi req_cgi = setupCgiRequest(req, ext);
+	RequestCgi req_cgi = setupCgiRequest(req, req._location_res[ext.data()]);
 	ResponseCgi res_cgi;
 	handleCGI(req_cgi, res_cgi);
 	std::ifstream generated_file;
 
 	if (res_cgi.getStatus() > 500) // TODO: I WILL DETAIL THE 5.. RES LATER
 	{
-		std::cout << "bec of here" << std::endl;
 		return (InternalServerError(client_socket, req), 1);
 	}
 	else

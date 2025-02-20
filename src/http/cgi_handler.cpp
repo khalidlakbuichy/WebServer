@@ -386,7 +386,7 @@ RequestCgi setupCgiRequest(HttpRequestData &req, std::string interpreter)
         req._tmp_file_name.empty() ? "./www/tmp/tmp" : req._tmp_file_name,               // Body file path
         req._headers.find("cookie") != req._headers.end() ? req._headers["cookie"] : "", // Cookies
         "",                                                                              // Path info (unused here)
-        "/usr/bin/php-cgi"                                                                      // Interpreter path
+        interpreter                                                                    // Interpreter path
     );
     return req_cgi;
 }

@@ -87,8 +87,6 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 	std::streamsize bytesRead = _tmp_file.gcount();
 	if (bytesRead <= 0)
 		return (req._Error_msg = "End of file or read error", -1);
-	else if (bytesRead < ChunkSize)
-		Buffer[bytesRead] = '\0';
 
 	end = ptr + bytesRead;
 
@@ -234,8 +232,35 @@ int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 			}
 			else
 			{
-				_uploaded_file.write(&rest[0], rest.size());
-				ptr += rest.size();
+				// step 1, take last boundary.length() + 10 bytes from the rest
+				std::vector<char> last_bytes(rest.end() - boundary.length() - 10, rest.end());
+				// step 2, read boundary.length() + 10 bytes from the file and add to the last_bytes
+				std::vector<char> next_bytes(boundary.length() + 10);
+				_tmp_file.read(&next_bytes[0], boundary.length() + 10);
+				last_bytes.insert(last_bytes.end(), next_bytes.begin(), next_bytes.end());
+				// step 3, check for boundary in the last_bytes
+				std::vector<char>::iterator boundary_pos = std::search(
+					last_bytes.begin(), last_bytes.end(),
+					boundary.begin(), boundary.end());
+
+				if (boundary_pos != last_bytes.end())
+				{
+					// Write the data before the boundary to the file
+					_uploaded_file.write(&rest[0], boundary_pos - rest.begin());
+					_uploaded_file.close();
+
+					// Move the pointer to the end of the boundary
+					ptr = end;
+					// add the aditional bytes readed till the start of the boundary
+					req._curr_tmpfile_pos += (boundary_pos - last_bytes.begin());
+					req.multipart_state = PARSE::STATE_BOUNDARY;
+				}
+				else
+				{
+					// Write the entire rest of the data to the file
+					_uploaded_file.write(&rest[0], rest.size());
+					ptr += rest.size();
+				}
 			}
 			break;
 		}
