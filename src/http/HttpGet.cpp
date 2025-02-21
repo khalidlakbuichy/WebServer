@@ -150,35 +150,41 @@ int Response::ServeDirectory(int client_socket, std::string DirPath, HttpRequest
 
 	return 1;
 }
+
 int Response::ServeCGI(int client_socket, std::string ext, HttpRequestData &req)
 {
 	RequestCgi req_cgi = setupCgiRequest(req, req._location_res[ext.data()]);
 	ResponseCgi res_cgi;
 	handleCGI(req_cgi, res_cgi);
-	std::ifstream generated_file;
+	remove(req._tmp_file_name.c_str());
 
-	if (res_cgi.getStatus() > 500) // TODO: I WILL DETAIL THE 5.. RES LATER
+	if (res_cgi.getStatus() == 500)
 	{
 		return (InternalServerError(client_socket, req), 1);
 	}
-	else
+	if (res_cgi.getStatus() == 204)
 	{
-		generated_file.open(res_cgi.getBodyFile().c_str(), std::ios::in | std::ios::binary);
-		if (!generated_file.is_open())
-			return (InternalServerError(client_socket, req), 1);
-
-		Response custom_res;
-		custom_res.WithStatus(res_cgi.getStatus()).WithHttpVersion("HTTP/1.1").setDefaultHeaders();
-		for (std::map<std::string, std::string>::const_iterator it = res_cgi.getHeaders().begin();
-			 it != res_cgi.getHeaders().end();
-			 ++it)
-		{
-			custom_res.WithHeader(it->first, it->second);
-		}
-		std::string body;
-		body.assign((std::istreambuf_iterator<char>(generated_file)), std::istreambuf_iterator<char>());
-		custom_res.WithBody(body).Generate().Send(client_socket);
-		remove(res_cgi.getBodyFile().c_str());
+		Response::Http204(client_socket);
+		return (1);
 	}
+
+	std::ifstream generated_file;
+	generated_file.open(res_cgi.getBodyFile().c_str(), std::ios::in | std::ios::binary);
+	if (!generated_file.is_open())
+		return (InternalServerError(client_socket, req), 1);
+
+	Response custom_res;
+	custom_res.WithStatus(res_cgi.getStatus()).WithHttpVersion("HTTP/1.1").setDefaultHeaders();
+	std::map<std::string, std::string>::const_iterator it;
+	for (it = res_cgi.getHeaders().begin(); it != res_cgi.getHeaders().end(); ++it)
+	{
+		custom_res.WithHeader(it->first, it->second);
+	}
+
+	std::string body;
+	body.assign((std::istreambuf_iterator<char>(generated_file)), std::istreambuf_iterator<char>());
+	custom_res.WithBody(body).Generate().Send(client_socket);
+
+	remove(res_cgi.getBodyFile().c_str());
 	return (1);
 }

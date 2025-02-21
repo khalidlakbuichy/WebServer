@@ -34,6 +34,7 @@ private:
 
 public:
 	Response();
+	~Response();
 
 	// Static Common Responses
 	// OK

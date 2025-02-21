@@ -7,6 +7,9 @@ Response::Response() : _version(""), _Status(""), _Headers(), _Body(""), _Resp("
 {
 	_ChunkedState = RESPONSE::CHUNKED_HEADERS;
 }
+Response::~Response()
+{
+}
 Response &Response::WithHttpVersion(std::string version)
 {
 	(void)version;

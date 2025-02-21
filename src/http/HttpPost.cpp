@@ -48,9 +48,6 @@ std::string Response::FieldsMapJsonify(std::map<std::string, std::string> Fields
 
 int Response::ParseMultiPartFormData(HttpRequestData &req, int client_socket)
 {
-	// TODO : CLOSE FILE ON ERROR
-	// TOOD : LEFTOVER IS A MUST
-	(void)client_socket;
 	if (!req._initialized)
 	{
 		std::string Root = req._location_res["root"];
