@@ -63,7 +63,11 @@ int Response::Serve(int client_socket, HttpRequestData &req)
 		else
 		{
 			// TODO :Check if autoindex ON, later. ELSE, 403 FORBIDEN.
-			return ServeDirectory(client_socket, resolvedPath, req);
+			if(req._location_res.check("autoindex"))
+				return ServeDirectory(client_socket, resolvedPath, req);
+			else
+				NotFound(client_socket, req);
+			return (1);
 		}
 	}
 	if (!_file.is_open())

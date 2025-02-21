@@ -30,17 +30,5 @@
 #define MAX_EVENTS 10
 
 
-// class Server {
-// 	private :
-// 		int _server_fd;
-
-// 	public :
-// 		Server();
-// 		~Server();
-
-// 		void Init();
-// 		void Serve_client(int client_socket);
-// };
-
 
 #endif

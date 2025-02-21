@@ -26,7 +26,6 @@ namespace http
 {
 
 template<class T1 , class T2>
-// create new class like  std::map     for  overriding functions  
 class map
 {
 

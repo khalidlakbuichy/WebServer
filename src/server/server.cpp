@@ -106,13 +106,9 @@ void Server::block_request(int fd)
     }
 
     if (reqParser_res == 1)
-    {
         ADD_Events(fd, EPOLLOUT, EPOLL_CTL_MOD);
-    }
     else if (reqParser_res == 0) // Continue
-    {
-        // ======>> wa9ila khass tkoun continue HNA
-    }
+        return ;
     else if (reqParser_res == -1) // Bad Request
     {
         Response::BadRequest(fd, serv[fd]->resData);
