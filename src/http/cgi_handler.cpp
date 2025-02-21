@@ -96,15 +96,12 @@ const std::string &ResponseCgi::getBodyFile() const {
     return _bodyFile;
 }
 
-// ------------------- Utility Function: trim -------------------
-// Trim whitespace from both ends of a string.
 static void trim(std::string &str) {
     const char *whitespace = " \t\n\r";
     str.erase(0, str.find_first_not_of(whitespace));
     str.erase(str.find_last_not_of(whitespace) + 1);
 }
 
-// =================== Non-Blocking CGI Handler Function with Timeout ===================
 void handleCGI(RequestCgi &request, ResponseCgi &response) {
     std::string interpreter = request.getInterpreter();
     std::string scriptFile  = request.getScriptName();
@@ -135,9 +132,10 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
         return;
     }
 
-    // Set the parent's ends of the pipes to non-blocking and set FD_CLOEXEC.
-    fcntl(stdin_pipe[1], F_SETFL, O_NONBLOCK | FD_CLOEXEC);
-    fcntl(stdout_pipe[0], F_SETFL, O_NONBLOCK | FD_CLOEXEC);
+    //FD_CLOEXEC: Makes sure that these file descriptors are automatically closed when a new program is executed via execve() (in the child process).
+    fcntl(stdin_pipe[1], F_SETFL, O_NONBLOCK, FD_CLOEXEC);
+    fcntl(stdout_pipe[0], F_SETFL, O_NONBLOCK, FD_CLOEXEC);
+
 
     // Fork the process.
     pid_t pid = fork();
@@ -191,11 +189,13 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
 
         pollfd fds[2];
         fds[0].fd = stdin_pipe[1];
+        //POLLOUT: means we want to check when it's possible to write without blocking.
         fds[0].events = POLLOUT;
         fds[1].fd = stdout_pipe[0];
+        //POLLIN: means we want to check when there is data available to read.
         fds[1].events = POLLIN;
 
-        bool stdin_closed = !is_post; // If not POST, stdin is already closed.
+        bool stdin_closed = !is_post;
         bool stdout_closed = false;
         std::string cgi_output;
 
@@ -210,7 +210,7 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
         bool eof_reached = false;
 
         while (!stdin_closed || !stdout_closed) {
-            gettimeofday(&now, NULL);
+            gettimeofday(&now, NULL); // For handling timeout.
             long elapsed_ms = (now.tv_sec - start.tv_sec) * 1000 +
                               (now.tv_usec - start.tv_usec) / 1000;
             if (elapsed_ms >= overall_timeout_ms) {
@@ -232,9 +232,8 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
                 return;
             }
 
-            // --- Write request body from file to CGI's STDIN (only for POST) ---
+            // Write request body from file to CGI's STDIN (only for POST)
             if (is_post && !stdin_closed && (fds[0].revents & POLLOUT)) {
-                // If no pending data in our buffer and file not at EOF, try to read.
                 if (bytes_in_buffer == 0 && !eof_reached) {
                     bytes_in_buffer = read(file_fd, file_buf, sizeof(file_buf));
                     if (bytes_in_buffer < 0) {
@@ -246,7 +245,6 @@ void handleCGI(RequestCgi &request, ResponseCgi &response) {
                             bytes_in_buffer = 0;
                         }
                     } else if (bytes_in_buffer == 0) {
-                        // End of file reached.
                         eof_reached = true;
                     }
                     buffer_offset = 0;
