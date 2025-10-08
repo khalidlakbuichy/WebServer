@@ -1,5 +1,4 @@
 <p align="center">
-  <img src="https://your-image-link-here.com/banner.png" alt="Webserv Banner" width="700"/>
 </p>
 
 <h1 align="center">🌐 Webserv — Moroccan C++ Webserver 🇲🇦</h1>
