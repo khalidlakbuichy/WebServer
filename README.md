@@ -97,5 +97,3 @@ It’s a deep dive into **low-level networking, process control, and web protoco
 This project is released under the **MIT License**.  
 Feel free to explore, learn, and improve upon it.
 
-## 🛠️ Architecture Overview
-
